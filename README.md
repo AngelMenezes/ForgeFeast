@@ -4,7 +4,7 @@ Cardápio e pedido do almoço: o responsável cadastra o cardápio da semana, ca
 
 Stack: Angular (frontend), ASP.NET Core / .NET 9 (API), SQL Server 2022 em Docker, Dapper. Arquitetura e decisões em [`docs/architecture/overview.md`](docs/architecture/overview.md); contrato da API em [`docs/api/openapi.yaml`](docs/api/openapi.yaml).
 
-> **Estado do F00:** backend (API, banco, testes, lint, scripts) e esqueleto do `frontend/` escritos. Em 2026-10-27 (IRONLAW) foram verificados `dotnet build`, `dotnet format --verify-no-changes` e os testes sem Docker (9 aprovados); os testes `RequiresDocker` e a subida do banco **não** foram executados porque o Docker não estava em execução. O frontend (EMBER, 2026-10-27) foi revisado por leitura, mas **`npm install`, lint, testes e build não foram executados** (o shell foi negado na sessão) e não há `package-lock.json`: rode os passos de [Frontend](#frontend-angular) para validar e versione o `package-lock.json` gerado. O Playwright (`frontend/e2e`) fica para o SNIPER.
+> **Estado do F00:** backend (API, banco, testes, lint, scripts) e esqueleto do `frontend/` escritos. Em 2026-10-27 (IRONLAW) foram verificados `dotnet build`, `dotnet format --verify-no-changes` e os testes sem Docker (9 aprovados); os testes `RequiresDocker` e a subida do banco **não** foram executados porque o Docker não estava em execução. O frontend (EMBER, 2026-10-27) foi revisado por leitura, mas **`npm install`, lint, testes e build não foram executados** (o shell foi negado na sessão) e não há `package-lock.json`: rode os passos de [Frontend](#frontend-angular) para validar e versione o `package-lock.json` gerado. O Playwright (`frontend/e2e`, SNIPER, 2026-10-27) foi configurado com 2 testes `@smoke`, mas **também não foi executado** (sem shell na sessão); veja [Testes E2E](#testes-e2e-playwright).
 
 ## Pré-requisitos
 
@@ -88,6 +88,21 @@ Requer Node.js **24.11.1** (`node --version`; com nvm: `nvm use`, que lê o `.nv
    | Formatação (Prettier) | `npm run format:check` (para corrigir: `npm run format`) |
    | Testes unitários (Vitest) | `npm test` |
    | Build | `npm run build` |
+
+### Testes E2E (Playwright)
+
+Os testes ficam em `frontend/e2e` e rodam no Chromium. O teste `@smoke` de saúde usa a **API real**, então antes disso o banco e a API precisam estar no ar (passos 2 e 3 do backend; confirme com `curl http://localhost:5080/api/health`). O Playwright sobe o frontend sozinho (`npm start`) se a porta 4200 estiver livre, ou reaproveita o que já estiver rodando.
+
+```bash
+cd frontend
+npm install                 # instala também o @playwright/test
+npm run e2e:install         # baixa o Chromium (só na primeira vez)
+npm run e2e:smoke           # só os testes @smoke (rodam em todo PR)
+npm run e2e                 # todos os testes E2E
+npx playwright show-report  # abre o relatório HTML da última execução
+```
+
+Em falha, o trace e o screenshot ficam em `frontend/test-results/`. O cenário de erro da API usa resposta simulada (`page.route`) e não depende da API.
 
 O endereço da API fica em `src/environments/environment*.ts` (`apiBaseUrl: '/api'`, caminho relativo resolvido pelo proxy). O frontend não lê o `.env`.
 

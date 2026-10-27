@@ -85,8 +85,8 @@ op-002-forgefeast/
 │   ├── eslint.config.js
 │   ├── .prettierrc.json / .prettierignore
 │   ├── tsconfig*.json
-│   ├── playwright.config.ts      # (a criar pelo SNIPER)
-│   ├── e2e/                      # (a criar pelo SNIPER) testes E2E Playwright
+│   ├── playwright.config.ts      # config do Playwright
+│   ├── e2e/                      # testes E2E Playwright (page objects + specs)
 │   └── src/
 │       ├── environments/         # apiBaseUrl = '/api'
 │       └── app/
