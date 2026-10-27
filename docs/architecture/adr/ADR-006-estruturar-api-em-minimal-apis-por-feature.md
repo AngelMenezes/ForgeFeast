@@ -14,9 +14,13 @@ Proposto (2026-10-27)
 ## Decisão
 Usaremos um único projeto `ForgeFeast.Api` com Minimal APIs, organizado por feature:
 
-- `Features/<Feature>/` contém `<Feature>Endpoints.cs` (extensão `Map<Feature>Endpoints(this IEndpointRouteBuilder)`), `Contracts/` (DTOs de request/response), `<Feature>Service.cs` (regras e validação) e `<Feature>Repository.cs` (Dapper).
+- `Features/<Feature>/` contém:
+  - `<Feature>Endpoints.cs`: extensões `Add<Feature>Feature(this IServiceCollection)` (registro de DI) e `Map<Feature>Endpoints(this IEndpointRouteBuilder)`;
+  - `<Feature>Contracts.cs`: DTOs de request/response (`sealed record`); vira pasta `Contracts/` só quando passar de um arquivo legível;
+  - `I<Feature>Service.cs` + `<Feature>Service.cs`: regras e validação;
+  - `I<Feature>Repository.cs` + `<Feature>Repository.cs`: SQL com Dapper. As interfaces existem para que o service seja testado em unidade com um repositório falso, sem banco.
 - `Infrastructure/` contém apenas código transversal: conexão, migrações, configuração e tratamento de erros.
-- Todos os endpoints são registrados sob `app.MapGroup("/api")`, com `TypedResults` e metadados OpenAPI (`WithName`, `WithTags`, `Produces…`).
+- Todos os endpoints são registrados sob `app.MapGroup("/api")`, com metadados OpenAPI (`WithName` igual ao `operationId` do contrato, `WithTags`, `Produces…`). Preferimos `TypedResults`; `Results.Json(..., statusCode)` é aceito quando o status depende do corpo (caso do health check).
 - Dependências via DI nativa do ASP.NET Core (`AddScoped` para services/repositórios). Sem MediatR, AutoMapper ou bibliotecas de validação nesta operação; validação explícita no service.
 - Features não chamam o repositório de outra feature; se precisarem de dados alheios, usam o service público da outra feature.
 - No F00 existe apenas `Features/Health`.

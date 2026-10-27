@@ -4,7 +4,7 @@ Cardápio e pedido do almoço: o responsável cadastra o cardápio da semana, ca
 
 Stack: Angular (frontend), ASP.NET Core / .NET 9 (API), SQL Server 2022 em Docker, Dapper. Arquitetura e decisões em [`docs/architecture/overview.md`](docs/architecture/overview.md); contrato da API em [`docs/api/openapi.yaml`](docs/api/openapi.yaml).
 
-> **Estado do F00:** backend (API, banco, testes, lint, scripts) e esqueleto do `frontend/` escritos. O frontend **ainda não foi instalado nem executado** (a etapa EMBER não teve shell): rode os passos de [Frontend](#frontend-angular) para validar. O Playwright (`frontend/e2e`) fica para o SNIPER.
+> **Estado do F00:** backend (API, banco, testes, lint, scripts) e esqueleto do `frontend/` escritos. Em 2026-10-27 (IRONLAW) foram verificados `dotnet build`, `dotnet format --verify-no-changes` e os testes sem Docker (9 aprovados); os testes `RequiresDocker` e a subida do banco **não** foram executados porque o Docker não estava em execução. O frontend **ainda não foi instalado nem executado**: rode os passos de [Frontend](#frontend-angular) para validar e versione o `package-lock.json` gerado. O Playwright (`frontend/e2e`) fica para o SNIPER.
 
 ## Pré-requisitos
 
@@ -15,7 +15,8 @@ Versões usadas e verificadas na máquina de desenvolvimento:
 | Git | 2.51.0 | `git --version` | https://git-scm.com/downloads |
 | .NET SDK | 9.0.200 (fixado em `global.json`) | `dotnet --version` | https://dotnet.microsoft.com/download/dotnet/9.0 |
 | Docker (Engine + Compose v2) | 28.3.3 | `docker --version` e `docker compose version` | https://docs.docker.com/get-docker/ |
-| Node.js | 24.11.1 (`.nvmrc`), usado a partir do frontend | `node --version` | https://nodejs.org/ |
+| Node.js | 24.11.1 (`.nvmrc` e `engines` do `frontend/package.json`) | `node --version` | https://nodejs.org/ |
+| npm | 11.6.2 (acompanha o Node 24.11.1; `packageManager` do `frontend/package.json`) | `npm --version` | vem com o Node.js |
 | Bash | qualquer (Git Bash no Windows) | `bash --version` | só para os scripts de `scripts/`; os comandos puros funcionam em qualquer shell |
 
 O Docker precisa estar **em execução**: confirme com `docker info` (sem erro de conexão).

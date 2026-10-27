@@ -16,11 +16,11 @@ Proposto (2026-10-27)
 Fixaremos as versões nos arquivos do repositório:
 
 - `global.json` na raiz com `"version": "9.0.200"` e `"rollForward": "latestPatch"` (aceita apenas patches da banda 9.0.2xx). Projetos com `TargetFramework` `net9.0`.
-- `.nvmrc` com `24.11.1`; `frontend/package.json` com `"engines": { "node": ">=24.11.1 <25" }`.
-- Angular na major 21 (`@angular/cli@21`); versões exatas travadas pelo `package-lock.json`, que é versionado.
+- `.nvmrc` com `24.11.1`; `frontend/package.json` com `"engines": { "node": "24.11.1" }` (versão exata, como pedido pelo comandante) e `"packageManager": "npm@11.6.2"` (npm que acompanha o Node 24.11.1 nesta máquina). Não ativaremos `engine-strict`: outro patch do Node 24 gera só aviso no `npm install`, não erro.
+- Angular na major 21 (`@angular/cli@21`); versões exatas travadas pelo `package-lock.json`, que é versionado assim que gerado pelo primeiro `npm install`.
 - Pacotes NuGet com versão exata em `Directory.Packages.props` (Central Package Management).
-- Imagem do SQL Server com tag de CU fixada (ver [ADR-003](ADR-003-usar-sql-server-2022-em-docker.md)); nunca `latest`.
-- Docker Engine 28.3.3 com Compose v2 (`docker compose`) documentado no README.
+- Imagem do SQL Server com tag de CU fixada (`2022-CU27-ubuntu-22.04`, ver [ADR-003](ADR-003-usar-sql-server-2022-em-docker.md)); nunca `latest`.
+- Docker Engine 28.3.3 com Compose v2 (`docker compose`) documentado no README (Docker não tem arquivo de fixação no repositório).
 
 ## Consequências
 - Positivas: build reproduzível nesta máquina e em outras com as mesmas versões; falha cedo e explícita quando o SDK não bate (`global.json`).
