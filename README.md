@@ -4,7 +4,7 @@ Cardápio e pedido do almoço: o responsável cadastra o cardápio da semana, ca
 
 Stack: Angular (frontend), ASP.NET Core / .NET 9 (API), SQL Server 2022 em Docker, Dapper. Arquitetura e decisões em [`docs/architecture/overview.md`](docs/architecture/overview.md); contrato da API em [`docs/api/openapi.yaml`](docs/api/openapi.yaml).
 
-> **Estado do F00:** backend (API, banco, testes, lint, scripts) pronto. O `frontend/` será criado pelo EMBER na próxima etapa e este README ganhará a seção dele.
+> **Estado do F00:** backend (API, banco, testes, lint, scripts) e esqueleto do `frontend/` escritos. O frontend **ainda não foi instalado nem executado** (a etapa EMBER não teve shell): rode os passos de [Frontend](#frontend-angular) para validar. O Playwright (`frontend/e2e`) fica para o SNIPER.
 
 ## Pré-requisitos
 
@@ -60,7 +60,37 @@ O Docker precisa estar **em execução**: confirme com `docker info` (sem erro d
    docker compose down -v     # apaga o volume e recomeça do zero
    ```
 
-## Build, lint e testes
+## Frontend (Angular)
+
+Requer Node.js **24.11.1** (`node --version`; com nvm: `nvm use`, que lê o `.nvmrc`) e npm (acompanha o Node; `npm --version`). Todos os comandos abaixo rodam em `frontend/`.
+
+1. **Instalar dependências** (gera o `package-lock.json`, que deve ser versionado para travar as versões exatas):
+
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+2. **Subir o frontend** (com a API já rodando na porta 5080; o `proxy.conf.json` encaminha `/api` para ela):
+
+   ```bash
+   npm start        # http://localhost:4200
+   ```
+
+   A tela inicial mostra o status de `GET /api/health`: carregando, saudável/degradado/indisponível, sem verificações e erro com botão "Tentar novamente". Para ver o estado de erro, abra a página com a API parada.
+
+3. **Verificar lint, formatação, testes e build:**
+
+   | Objetivo | Comando |
+   |---|---|
+   | Lint (angular-eslint) | `npm run lint` |
+   | Formatação (Prettier) | `npm run format:check` (para corrigir: `npm run format`) |
+   | Testes unitários (Vitest) | `npm test` |
+   | Build | `npm run build` |
+
+O endereço da API fica em `src/environments/environment*.ts` (`apiBaseUrl: '/api'`, caminho relativo resolvido pelo proxy). O frontend não lê o `.env`.
+
+## Build, lint e testes (backend)
 
 | Objetivo | Script | Comando equivalente |
 |---|---|---|
@@ -79,6 +109,7 @@ O Docker precisa estar **em execução**: confirme com `docker info` (sem erro d
 backend/src/ForgeFeast.Api/        API (Minimal APIs por feature, Dapper, DbUp)
 backend/tests/ForgeFeast.Api.UnitTests/
 backend/tests/ForgeFeast.Api.IntegrationTests/
+frontend/                          SPA Angular (src/app/{core,shared,features}), proxy e lint
 docs/                              arquitetura, ADRs e OpenAPI
 scripts/                           build, lint, test, db-up, run-api
 docker-compose.yml                 SQL Server 2022

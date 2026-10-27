@@ -1,0 +1,89 @@
+.health-panel {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+}
+
+.health-panel__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-lg);
+}
+
+.health-panel__message,
+.health-panel__summary {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-muted);
+}
+
+.health-panel__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.health-panel__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.health-panel__badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+}
+
+.health-panel__badge--healthy {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.health-panel__badge--degraded {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.health-panel__badge--unhealthy {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.health-panel__button {
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.health-panel__spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-right: var(--space-2);
+  border: 0.125rem solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  vertical-align: middle;
+  animation: health-panel-spin 0.8s linear infinite;
+}
+
+@keyframes health-panel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .health-panel__spinner {
+    animation: none;
+  }
+}

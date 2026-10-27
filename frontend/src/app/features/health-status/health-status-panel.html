@@ -1,0 +1,47 @@
+<section class="health-panel" aria-labelledby="health-panel-title">
+  <h2 id="health-panel-title" class="health-panel__title">Status da API</h2>
+
+  @switch (state().kind) {
+    @case ('loading') {
+      <p class="health-panel__message" role="status">
+        <span class="health-panel__spinner" aria-hidden="true"></span>
+        Verificando a API…
+      </p>
+    }
+    @case ('error') {
+      <div class="health-panel__error" role="alert">
+        <p class="health-panel__message">
+          Não foi possível falar com a API. Confirme que ela está rodando na porta 5080.
+        </p>
+        <button class="health-panel__button" type="button" (click)="handleRetry()">
+          Tentar novamente
+        </button>
+      </div>
+    }
+    @case ('loaded') {
+      @if (report(); as current) {
+        <p class="health-panel__summary" role="status">
+          Estado geral:
+          <span [class]="badgeClassFor(current.status)">
+            {{ labelFor(current.status) }}
+          </span>
+        </p>
+
+        @if (current.checks.length === 0) {
+          <p class="health-panel__message">Nenhuma verificação reportada pela API.</p>
+        } @else {
+          <ul class="health-panel__list">
+            @for (check of current.checks; track check.name) {
+              <li class="health-panel__item">
+                <span class="health-panel__check-name">{{ check.name }}</span>
+                <span [class]="badgeClassFor(check.status)">
+                  {{ labelFor(check.status) }}
+                </span>
+              </li>
+            }
+          </ul>
+        }
+      }
+    }
+  }
+</section>
