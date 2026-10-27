@@ -1,0 +1,79 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{ts,js,json,html,scss,css,yml,yaml,md}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.sln]
+end_of_line = crlf
+indent_style = tab
+
+[*.{csproj,props,targets}]
+indent_size = 2
+
+[*.cs]
+# Namespaces com escopo de arquivo, Allman e nomes
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+
+# CA1848 (LoggerMessage) é otimização para logging de alto volume; desnecessária nesta demo local.
+dotnet_diagnostic.CA1848.severity = none
+
+# Interfaces com prefixo I
+dotnet_naming_rule.interfaces_prefixo_i.severity = warning
+dotnet_naming_rule.interfaces_prefixo_i.symbols = interfaces
+dotnet_naming_rule.interfaces_prefixo_i.style = prefixo_i
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_style.prefixo_i.required_prefix = I
+dotnet_naming_style.prefixo_i.capitalization = pascal_case
+
+# Constantes em PascalCase (precede a regra de campos privados)
+dotnet_naming_rule.constantes.severity = warning
+dotnet_naming_rule.constantes.symbols = constantes
+dotnet_naming_rule.constantes.style = pascal_case_style
+dotnet_naming_symbols.constantes.applicable_kinds = field
+dotnet_naming_symbols.constantes.required_modifiers = const
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+# Campos privados em _camelCase
+dotnet_naming_rule.campos_privados.severity = warning
+dotnet_naming_rule.campos_privados.symbols = campos_privados
+dotnet_naming_rule.campos_privados.style = underscore_camel_case
+dotnet_naming_symbols.campos_privados.applicable_kinds = field
+dotnet_naming_symbols.campos_privados.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+
+# Sufixo Async em métodos assíncronos (somente sugestão: lambdas e handlers de teste podem divergir)
+dotnet_naming_rule.metodos_async.severity = suggestion
+dotnet_naming_rule.metodos_async.symbols = metodos_async
+dotnet_naming_rule.metodos_async.style = sufixo_async
+dotnet_naming_symbols.metodos_async.applicable_kinds = method
+dotnet_naming_symbols.metodos_async.required_modifiers = async
+dotnet_naming_style.sufixo_async.required_suffix = Async
+dotnet_naming_style.sufixo_async.capitalization = pascal_case
+
+# Testes: nomes Metodo_Cenario_Resultado usam underscore
+[backend/tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none
