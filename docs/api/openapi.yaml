@@ -1,0 +1,122 @@
+openapi: 3.0.3
+info:
+  title: ForgeFeast API
+  version: 0.1.0
+  description: |
+    Contrato da API do ForgeFeast (OP-002). Fonte da verdade conforme ADR-007.
+    Todos os endpoints ficam sob /api. Erros seguem ProblemDetails (RFC 9457, ADR-008).
+servers:
+  - url: http://localhost:5080
+    description: API local (desenvolvimento)
+tags:
+  - name: Health
+    description: Verificação de saúde da API e do banco.
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      operationId: getHealth
+      summary: Verifica a saúde da API e da conexão com o banco.
+      responses:
+        '200':
+          description: API e dependências saudáveis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthReport'
+              example:
+                status: Healthy
+                checks:
+                  - name: database
+                    status: Healthy
+        '503':
+          description: Alguma dependência está indisponível.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthReport'
+              example:
+                status: Unhealthy
+                checks:
+                  - name: database
+                    status: Unhealthy
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  schemas:
+    HealthStatus:
+      type: string
+      enum: [Healthy, Degraded, Unhealthy]
+    HealthCheckEntry:
+      type: object
+      required: [name, status]
+      properties:
+        name:
+          type: string
+          description: Identificador da verificação (ex.: database).
+        status:
+          $ref: '#/components/schemas/HealthStatus'
+    HealthReport:
+      type: object
+      required: [status, checks]
+      properties:
+        status:
+          $ref: '#/components/schemas/HealthStatus'
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/HealthCheckEntry'
+    ProblemDetails:
+      type: object
+      description: Erro no formato RFC 9457 (application/problem+json).
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+        traceId:
+          type: string
+      additionalProperties: true
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+  responses:
+    BadRequest:
+      description: Requisição inválida.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+    NotFound:
+      description: Recurso não encontrado.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Conflict:
+      description: Conflito com o estado atual do recurso.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    InternalServerError:
+      description: Erro inesperado no servidor.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
