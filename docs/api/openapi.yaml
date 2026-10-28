@@ -1,17 +1,213 @@
 openapi: 3.0.3
 info:
   title: ForgeFeast API
-  version: 0.1.0
+  version: 0.2.0
   description: |
     Contrato da API do ForgeFeast (OP-002). Fonte da verdade conforme ADR-007.
     Todos os endpoints ficam sob /api. Erros seguem ProblemDetails (RFC 9457, ADR-008).
+    Erros de validação (400) seguem ADR-013: `errors` é um mapa cuja chave é o nome do
+    campo do contrato em camelCase (`date`, `name`, `description`, `weekStart`).
+    Datas são `yyyy-MM-dd`, sem hora e sem fuso.
 servers:
   - url: http://localhost:5080
     description: API local (desenvolvimento)
 tags:
   - name: Health
     description: Verificação de saúde da API e do banco.
+  - name: Menu
+    description: Cardápio da semana e pratos por dia útil (F01).
 paths:
+  /api/menu:
+    get:
+      tags: [Menu]
+      operationId: getWeekMenu
+      summary: Consulta o cardápio da semana, de segunda a sexta, agrupado por dia.
+      description: |
+        Sempre retorna exatamente cinco dias (segunda a sexta), em ordem de data.
+        Dia sem pratos vem com `dishes: []`. Pratos de cada dia em ordem de `id` (ordem de cadastro).
+      parameters:
+        - name: weekStart
+          in: query
+          required: true
+          description: Segunda-feira que inicia a semana (`yyyy-MM-dd`). Outro dia da semana responde 400.
+          schema:
+            type: string
+            format: date
+          example: '2026-10-26'
+      responses:
+        '200':
+          description: Cardápio da semana.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeekMenu'
+              example:
+                weekStart: '2026-10-26'
+                weekEnd: '2026-10-30'
+                days:
+                  - date: '2026-10-26'
+                    dayOfWeek: Monday
+                    dishes:
+                      - id: 1
+                        date: '2026-10-26'
+                        name: Feijoada
+                        description: Com arroz, couve e farofa
+                      - id: 2
+                        date: '2026-10-26'
+                        name: Salada de grão-de-bico
+                        description: null
+                  - date: '2026-10-27'
+                    dayOfWeek: Tuesday
+                    dishes: []
+                  - date: '2026-10-28'
+                    dayOfWeek: Wednesday
+                    dishes: []
+                  - date: '2026-10-29'
+                    dayOfWeek: Thursday
+                    dishes: []
+                  - date: '2026-10-30'
+                    dayOfWeek: Friday
+                    dishes: []
+        '400':
+          description: weekStart ausente, em formato inválido ou que não é segunda-feira.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+              examples:
+                notMonday:
+                  summary: weekStart não é segunda
+                  value:
+                    type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+                    title: Um ou mais campos são inválidos.
+                    status: 400
+                    errors:
+                      weekStart:
+                        - A semana deve começar numa segunda-feira.
+                    traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+                invalidFormat:
+                  summary: weekStart ausente ou fora do formato
+                  value:
+                    type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+                    title: Um ou mais campos são inválidos.
+                    status: 400
+                    errors:
+                      weekStart:
+                        - Informe uma data válida no formato AAAA-MM-DD.
+                    traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/dishes:
+    post:
+      tags: [Menu]
+      operationId: createDish
+      summary: Cadastra um prato num dia útil.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DishRequest'
+            example:
+              date: '2026-10-26'
+              name: Feijoada
+              description: Com arroz, couve e farofa
+      responses:
+        '201':
+          description: Prato criado.
+          headers:
+            Location:
+              description: URL do prato criado (`/api/dishes/{id}`).
+              schema:
+                type: string
+              example: /api/dishes/1
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dish'
+              example:
+                id: 1
+                date: '2026-10-26'
+                name: Feijoada
+                description: Com arroz, couve e farofa
+        '400':
+          $ref: '#/components/responses/DishValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/dishes/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Identificador do prato. Valor não inteiro não casa com a rota e responde 404.
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
+    get:
+      tags: [Menu]
+      operationId: getDish
+      summary: Consulta um prato pelo id.
+      responses:
+        '200':
+          description: Prato encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dish'
+        '404':
+          $ref: '#/components/responses/DishNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Menu]
+      operationId: updateDish
+      summary: Substitui data, nome e descrição de um prato.
+      description: |
+        Substituição completa: `description` ausente ou nula grava nulo.
+        O corpo é validado antes da busca do prato: corpo inválido responde 400 mesmo para id inexistente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DishRequest'
+            example:
+              date: '2026-10-26'
+              name: Feijoada light
+              description: null
+      responses:
+        '200':
+          description: Prato alterado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dish'
+              example:
+                id: 1
+                date: '2026-10-26'
+                name: Feijoada light
+                description: null
+        '400':
+          $ref: '#/components/responses/DishValidationError'
+        '404':
+          $ref: '#/components/responses/DishNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Menu]
+      operationId: deleteDish
+      summary: Remove um prato.
+      description: |
+        No F01 não existem pedidos, então a remoção sempre ocorre se o prato existir.
+        A resposta 409 para prato com pedidos entra no contrato na F02, junto com a tabela OrderItem.
+      responses:
+        '204':
+          description: Prato removido.
+        '404':
+          $ref: '#/components/responses/DishNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/health:
     get:
       tags: [Health]
@@ -66,6 +262,84 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/HealthCheckEntry'
+    DayOfWeek:
+      type: string
+      description: Dia útil em inglês, como `System.DayOfWeek`. O frontend traduz o rótulo.
+      enum: [Monday, Tuesday, Wednesday, Thursday, Friday]
+    DishRequest:
+      type: object
+      description: |
+        Corpo de POST e PUT. Regras validadas pela API (ADR-013):
+        - `date`: obrigatório, `yyyy-MM-dd`, segunda a sexta.
+        - `name`: obrigatório; espaços nas pontas são removidos; 1 a 100 caracteres após o trim.
+        - `description`: opcional; espaços nas pontas são removidos; vazio vira null; até 300 caracteres após o trim.
+        A API recebe `date` como texto e o valida ela mesma, para que formato inválido gere erro no campo `date`.
+        Propriedades desconhecidas são ignoradas.
+      required: [date, name]
+      properties:
+        date:
+          type: string
+          format: date
+          example: '2026-10-26'
+        name:
+          type: string
+          maxLength: 100
+          example: Feijoada
+        description:
+          type: string
+          nullable: true
+          maxLength: 300
+          example: Com arroz, couve e farofa
+    Dish:
+      type: object
+      required: [id, date, name, description]
+      properties:
+        id:
+          type: integer
+          format: int32
+        date:
+          type: string
+          format: date
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+          maxLength: 300
+          description: Sempre presente na resposta; null quando não informada.
+    WeekMenuDay:
+      type: object
+      required: [date, dayOfWeek, dishes]
+      properties:
+        date:
+          type: string
+          format: date
+        dayOfWeek:
+          $ref: '#/components/schemas/DayOfWeek'
+        dishes:
+          type: array
+          description: Lista vazia quando o dia não tem pratos.
+          items:
+            $ref: '#/components/schemas/Dish'
+    WeekMenu:
+      type: object
+      required: [weekStart, weekEnd, days]
+      properties:
+        weekStart:
+          type: string
+          format: date
+          description: Segunda-feira informada.
+        weekEnd:
+          type: string
+          format: date
+          description: Sexta-feira da mesma semana (weekStart + 4 dias).
+        days:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/WeekMenuDay'
     ProblemDetails:
       type: object
       description: Erro no formato RFC 9457 (application/problem+json).
@@ -102,6 +376,70 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ValidationProblemDetails'
+    DishValidationError:
+      description: |
+        Corpo inválido (ADR-013). Chaves possíveis em `errors`: `date`, `name`, `description`.
+        Cada chave lista todas as mensagens do campo; vários campos podem vir juntos. Nada é gravado.
+        JSON malformado ou corpo ausente também responde 400 em problem+json, mas pode vir sem `errors`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+          examples:
+            weekend:
+              summary: date em sábado ou domingo
+              value:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+                title: Um ou mais campos são inválidos.
+                status: 400
+                errors:
+                  date:
+                    - Escolha um dia útil (segunda a sexta).
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+            invalidDate:
+              summary: date ausente ou fora do formato
+              value:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+                title: Um ou mais campos são inválidos.
+                status: 400
+                errors:
+                  date:
+                    - Informe uma data válida no formato AAAA-MM-DD.
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+            nameAndDescription:
+              summary: name vazio e description longa demais
+              value:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+                title: Um ou mais campos são inválidos.
+                status: 400
+                errors:
+                  name:
+                    - Informe o nome do prato.
+                  description:
+                    - A descrição deve ter no máximo 300 caracteres.
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+            nameTooLong:
+              summary: name acima de 100 caracteres
+              value:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+                title: Um ou mais campos são inválidos.
+                status: 400
+                errors:
+                  name:
+                    - O nome do prato deve ter no máximo 100 caracteres.
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+    DishNotFound:
+      description: Prato inexistente.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://tools.ietf.org/html/rfc9110#section-15.5.5
+            title: Prato não encontrado.
+            status: 404
+            detail: Não existe prato com id 42.
+            traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
     NotFound:
       description: Recurso não encontrado.
       content:

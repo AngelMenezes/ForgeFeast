@@ -2,7 +2,7 @@
 
 Data: 2026-10-27
 Autor: IRONLAW (Arquiteto)
-Escopo: base técnica do projeto (F00 — Setup do projeto). Este documento **não** descreve regras de negócio; elas pertencem às features P1/P2 e aos respectivos tickets.
+Escopo: base técnica do projeto (F00 — Setup do projeto) e fronteiras, contrato e modelo de dados do F01 — Cardápio da semana. Este documento **não** descreve regras de negócio; elas pertencem às features P1/P2 e aos respectivos tickets.
 
 ## 1. Visão geral
 
@@ -65,6 +65,8 @@ op-002-forgefeast/
 │   │       │       ├── HealthContracts.cs    # DTOs do contrato
 │   │       │       ├── IHealthService.cs / HealthService.cs
 │   │       │       └── IHealthRepository.cs / HealthRepository.cs
+│   │       │   └── Menu/                 # F01 Cardápio da semana (ADR-012): MenuEndpoints, MenuContracts,
+│   │       │                             # DishRequestValidator, IMenuService/MenuService, IDishRepository/DishRepository
 │   │       │   # cada feature futura repete este formato em Features/<Feature>/
 │   │       └── Infrastructure/
 │   │           ├── Configuration/        # DotEnvLoader (.env só em Development)
@@ -72,7 +74,7 @@ op-002-forgefeast/
 │   │           │   ├── DatabaseOptions.cs
 │   │           │   ├── ISqlConnectionFactory.cs / SqlConnectionFactory.cs
 │   │           │   ├── DatabaseMigrator.cs   # DbUp
-│   │           │   ├── Migrations/           # NNNN_descricao.sql (embedded resources)
+│   │           │   ├── Migrations/           # NNNN_descricao.sql (embedded resources): 0001_baseline, 0002_create_dish
 │   │           │   └── Seeds/                # (P2, a criar) dados de exemplo, separados do schema
 │   │           └── Errors/               # GlobalExceptionHandler (ProblemDetails)
 │   └── tests/
@@ -128,9 +130,33 @@ Regras: endpoints não executam SQL; repositórios não contêm regra de negóci
 - Fonte da verdade: [`docs/api/openapi.yaml`](../api/openapi.yaml) (OpenAPI 3.0.3). Ver [ADR-007](adr/ADR-007-manter-contrato-openapi-versionado.md).
 - Todos os endpoints ficam sob `/api`. JSON em `camelCase`. Datas no formato ISO 8601 (`yyyy-MM-dd` para datas sem hora).
 - Erros: `application/problem+json` (RFC 9457). Ver [ADR-008](adr/ADR-008-padronizar-erros-com-problemdetails.md).
-- Endpoint do F00: `GET /api/health` (200 `Healthy` / 503 `Unhealthy`), incluindo verificação do banco.
+- Erros de validação 400: chaves de `errors` iguais ao campo do contrato, em camelCase, com mensagens fixas em português. Ver [ADR-013](adr/ADR-013-padronizar-erros-de-validacao-400-por-campo.md).
 - Em `Development`, a API publica o documento gerado em `/openapi/v1.json` (Microsoft.AspNetCore.OpenApi) e a Swagger UI em `/swagger`, apenas como apoio de inspeção.
-- O F00 não tem nenhum endpoint de negócio; cardápio, pedidos e resumo entram no contrato nas PRs das features P1.
+
+| Endpoint | Feature | Sucesso | Erros |
+|---|---|---|---|
+| `GET /api/health` | F00 | 200 / 503 | 500 |
+| `GET /api/menu?weekStart=yyyy-MM-dd` | F01 | 200 `WeekMenu` (sempre 5 dias, segunda a sexta) | 400 `weekStart` |
+| `POST /api/dishes` | F01 | 201 `Dish` + `Location` | 400 `date`/`name`/`description` |
+| `GET /api/dishes/{id}` | F01 | 200 `Dish` | 404 |
+| `PUT /api/dishes/{id}` | F01 | 200 `Dish` | 400 (validado antes do 404), 404 |
+| `DELETE /api/dishes/{id}` | F01 | 204 | 404 (409 com pedidos entra na F02) |
+
+## 5.1 Modelo de dados
+
+Ver [ADR-012](adr/ADR-012-definir-fronteiras-entre-angular-api-e-sql-server.md) e o script `Migrations/0002_create_dish.sql`.
+
+```mermaid
+erDiagram
+    Dish {
+        INT Id PK "IDENTITY"
+        DATE Date "NOT NULL, CHECK dia útil, IX_Dish_Date"
+        NVARCHAR_100 Name "NOT NULL, CHECK LEN > 0"
+        NVARCHAR_300 Description "NULL"
+    }
+```
+
+A F02 acrescenta `OrderItem` com FK para `Dish`.
 
 ## 6. Configuração
 
@@ -187,5 +213,7 @@ Logs via `ILogger` padrão do ASP.NET Core no console, sem provider externo. Hea
 | [ADR-009](adr/ADR-009-configurar-por-env-e-appsettings.md) | Configurar por .env e appsettings com variáveis de ambiente | Proposto | 2026-10-27 |
 | [ADR-010](adr/ADR-010-adotar-ferramentas-de-lint-formatacao-e-testes.md) | Adotar ferramentas de lint, formatação e testes | Proposto | 2026-10-27 |
 | [ADR-011](adr/ADR-011-estruturar-frontend-angular-em-core-shared-features.md) | Estruturar o frontend Angular em core, shared e features com componentes standalone | Proposto | 2026-10-27 |
+| [ADR-012](adr/ADR-012-definir-fronteiras-entre-angular-api-e-sql-server.md) | Definir fronteiras entre Angular, API e SQL Server | Proposto | 2026-10-27 |
+| [ADR-013](adr/ADR-013-padronizar-erros-de-validacao-400-por-campo.md) | Padronizar erros de validação 400 por campo do contrato | Proposto | 2026-10-27 |
 
 Todas as ADRs estão `Proposto` e precisam de revisão e aprovação humana (mudança para `Aceito`, com data) antes de qualquer feature P1 começar.
