@@ -1,0 +1,75 @@
+<section class="week-board" aria-labelledby="week-board-title" [attr.aria-busy]="state().kind === 'loading'">
+  <h2 id="week-board-title" class="week-board__title">Pratos por dia</h2>
+
+  @switch (state().kind) {
+    @case ('loading') {
+      <p class="week-board__message" role="status">
+        <span class="week-board__spinner" aria-hidden="true"></span>
+        Carregando o cardápio…
+      </p>
+    }
+    @case ('error') {
+      <div class="week-board__error" role="alert">
+        <p class="week-board__message">{{ errorMessage() }}</p>
+        <button class="week-board__button" type="button" (click)="handleRetry()">
+          Tentar novamente
+        </button>
+      </div>
+    }
+    @case ('loaded') {
+      @if (week(); as current) {
+        <ol class="week-board__days">
+          @for (day of current.days; track day.date) {
+            <li class="week-board__day" [attr.data-date]="day.date">
+              <h3 class="week-board__day-title">{{ labelFor(day.date) }}</h3>
+
+              @if (day.dishes.length === 0) {
+                <p class="week-board__empty">Nenhum prato cadastrado para este dia.</p>
+              } @else {
+                <ul class="week-board__dishes">
+                  @for (dish of day.dishes; track dish.id) {
+                    <li class="week-board__dish">
+                      <p class="week-board__dish-name">{{ dish.name }}</p>
+                      @if (dish.description) {
+                        <p class="week-board__dish-description">{{ dish.description }}</p>
+                      }
+
+                      @if (isEditable()) {
+                        @if (pendingRemovalId() === dish.id) {
+                          <ff-dish-remove-confirm
+                            [dishName]="dish.name"
+                            (confirmed)="handleRemoveConfirm(dish)"
+                            (cancelled)="handleRemoveCancel()"
+                          />
+                        } @else {
+                          <div class="week-board__actions">
+                            <button
+                              class="week-board__action"
+                              type="button"
+                              [attr.aria-label]="'Editar ' + dish.name"
+                              (click)="handleEdit(dish)"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              class="week-board__action week-board__action--danger"
+                              type="button"
+                              [attr.aria-label]="'Remover ' + dish.name"
+                              (click)="handleRemoveRequest(dish)"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        }
+                      }
+                    </li>
+                  }
+                </ul>
+              }
+            </li>
+          }
+        </ol>
+      }
+    }
+  }
+</section>

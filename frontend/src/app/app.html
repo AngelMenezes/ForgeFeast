@@ -1,5 +1,32 @@
 <header class="app__header">
   <p class="app__brand">ForgeFeast</p>
+  <nav class="app__nav" aria-label="Principal">
+    <a
+      class="app__link"
+      routerLink="/cardapio"
+      routerLinkActive="app__link--active"
+      ariaCurrentWhenActive="page"
+    >
+      Cardápio
+    </a>
+    <a
+      class="app__link"
+      routerLink="/cadastro"
+      routerLinkActive="app__link--active"
+      ariaCurrentWhenActive="page"
+    >
+      Cadastro de pratos
+    </a>
+    <a
+      class="app__link"
+      routerLink="/"
+      routerLinkActive="app__link--active"
+      ariaCurrentWhenActive="page"
+      [routerLinkActiveOptions]="{ exact: true }"
+    >
+      Status da API
+    </a>
+  </nav>
 </header>
 <main class="app__main">
   <router-outlet />

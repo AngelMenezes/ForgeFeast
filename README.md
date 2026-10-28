@@ -8,6 +8,8 @@ Stack: Angular (frontend), ASP.NET Core / .NET 9 (API), SQL Server 2022 em Docke
 
 > **Estado do F01 (API de pratos, ANVIL, 2026-10-27):** `Features/Menu` implementada (`GET /api/menu`, `POST/GET/PUT/DELETE /api/dishes`) com a migração `0002_create_dish.sql`. Verificados `dotnet build`, `dotnet format --verify-no-changes` e 38 testes de unidade (mais 2 de integração sem Docker). Os testes de integração de `MenuEndpointsTests` (`RequiresDocker`) **não foram executados** (Docker parado): rode `dotnet test ForgeFeast.sln` com o Docker ativo. A conferência de `/openapi/v1.json` contra `docs/api/openapi.yaml` também está pendente. Para experimentar: suba o banco e a API (seções abaixo) e abra `http://localhost:<porta>/swagger` em Development.
 
+> **Estado do F01 (telas, EMBER, 2026-10-27):** rotas `/cardapio` (visualização) e `/cadastro` (criar, editar e remover com confirmação) escritas, com testes de unidade (Vitest) para serviço, datas, erros da API, quadro da semana e a página de cadastro. **`npm install`, lint, formatação, testes e build não foram executados** (o shell foi negado na sessão): rode os comandos de [Frontend](#frontend-angular) antes de aprovar. Não há `package-lock.json`.
+
 ## Pré-requisitos
 
 Versões usadas e verificadas na máquina de desenvolvimento:
@@ -80,7 +82,18 @@ Requer Node.js **24.11.1** (`node --version`; com nvm: `nvm use`, que lê o `.nv
    npm start        # http://localhost:4200
    ```
 
-   A tela inicial mostra o status de `GET /api/health`: carregando, saudável/degradado/indisponível, sem verificações e erro com botão "Tentar novamente". Para ver o estado de erro, abra a página com a API parada.
+   A tela inicial (`/`) mostra o status de `GET /api/health`: carregando, saudável/degradado/indisponível, sem verificações e erro com botão "Tentar novamente". Para ver o estado de erro, abra a página com a API parada.
+
+   **Demonstrar o F01 (cardápio da semana)** com banco e API no ar:
+
+   1. Abra http://localhost:4200/cadastro. A semana exibida é a atual (em sábado ou domingo, a próxima); use "Semana anterior", "Próxima semana" e "Semana atual" para navegar.
+   2. **Criar:** escolha o dia (o seletor só lista segunda a sexta), informe o nome (até 100 caracteres) e, se quiser, a descrição (até 300), e clique em "Adicionar prato". A lista abaixo atualiza sem recarregar a página.
+   3. **Editar:** clique em "Editar" no prato, altere os campos (inclusive o dia) e clique em "Salvar alterações". "Cancelar edição" volta ao modo de cadastro.
+   4. **Remover:** clique em "Remover"; aparece a confirmação. "Cancelar" mantém o prato; "Confirmar remoção" apaga.
+   5. **Erros de validação:** nome em branco mostra a mensagem junto ao campo antes de enviar. Erros 400 da API (por exemplo `date`) aparecem junto ao campo correspondente; chaves sem campo e falhas de rede aparecem num alerta no topo do formulário.
+   6. **Visualizar:** abra http://localhost:4200/cardapio. São cinco seções, de segunda a sexta, e cada dia sem pratos mostra "Nenhum prato cadastrado para este dia."
+
+   Estados cobertos nas duas telas: carregando, erro (com "Tentar novamente"), vazio (por dia) e sucesso.
 
 3. **Verificar lint, formatação, testes e build:**
 

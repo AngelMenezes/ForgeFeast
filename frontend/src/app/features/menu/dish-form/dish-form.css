@@ -1,0 +1,81 @@
+.dish-form {
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+}
+
+.dish-form__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-lg);
+}
+
+.dish-form__field {
+  margin-bottom: var(--space-3);
+}
+
+.dish-form__label {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-weight: 700;
+}
+
+.dish-form__control {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.dish-form__control[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.dish-form__error {
+  margin: var(--space-1) 0 0;
+  color: var(--color-danger);
+}
+
+.dish-form__alert {
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.dish-form__alert-text {
+  margin: 0;
+}
+
+.dish-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dish-form__button {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dish-form__button--secondary {
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+}
+
+.dish-form__button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

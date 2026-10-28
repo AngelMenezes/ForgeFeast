@@ -1,4 +1,8 @@
 .app__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
   padding: var(--space-3);
   background-color: var(--color-primary);
   color: var(--color-primary-contrast);
@@ -10,8 +14,24 @@
   font-weight: 700;
 }
 
+.app__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.app__link {
+  color: var(--color-primary-contrast);
+  text-underline-offset: 0.25rem;
+}
+
+.app__link--active {
+  font-weight: 700;
+  text-decoration-thickness: 0.1875rem;
+}
+
 .app__main {
-  max-width: 40rem;
+  max-width: 72rem;
   margin: 0 auto;
   padding: var(--space-4) var(--space-3);
 }

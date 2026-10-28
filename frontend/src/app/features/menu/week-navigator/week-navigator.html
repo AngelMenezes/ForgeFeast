@@ -1,0 +1,18 @@
+<nav class="week-navigator" aria-label="Navegação de semana">
+  <button class="week-navigator__button" type="button" (click)="handlePrevious()">
+    Semana anterior
+  </button>
+  <p class="week-navigator__range" aria-live="polite">
+    Semana de <strong>{{ rangeLabel() }}</strong>
+  </p>
+  <button class="week-navigator__button" type="button" (click)="handleNext()">
+    Próxima semana
+  </button>
+  <button
+    class="week-navigator__button week-navigator__button--secondary"
+    type="button"
+    (click)="handleCurrent()"
+  >
+    Semana atual
+  </button>
+</nav>

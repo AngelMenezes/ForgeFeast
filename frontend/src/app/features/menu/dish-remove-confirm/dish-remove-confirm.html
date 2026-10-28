@@ -1,0 +1,23 @@
+<div class="dish-remove-confirm" role="group" aria-label="Confirmar remoção">
+  <p class="dish-remove-confirm__text">
+    Remover o prato <strong>{{ dishName() }}</strong
+    >? Esta ação não pode ser desfeita.
+  </p>
+  <div class="dish-remove-confirm__actions">
+    <button
+      class="dish-remove-confirm__button dish-remove-confirm__button--danger"
+      type="button"
+      (click)="handleConfirm()"
+    >
+      Confirmar remoção
+    </button>
+    <button
+      #cancelButton
+      class="dish-remove-confirm__button"
+      type="button"
+      (click)="handleCancel()"
+    >
+      Cancelar
+    </button>
+  </div>
+</div>

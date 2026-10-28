@@ -1,0 +1,33 @@
+<h1 class="admin-page__title">Cadastro de pratos</h1>
+
+<ff-week-navigator
+  [weekStart]="weekStart()"
+  (previous)="handlePreviousWeek()"
+  (next)="handleNextWeek()"
+  (current)="handleCurrentWeek()"
+/>
+
+<div class="admin-page__feedback" role="status">{{ feedback() }}</div>
+@if (removalError()) {
+  <p class="admin-page__error" role="alert">{{ removalError() }}</p>
+}
+
+<ff-dish-form
+  [weekDays]="weekDays()"
+  [dish]="editingDish()"
+  [isSaving]="isSaving()"
+  [problem]="problem()"
+  (save)="handleSave($event)"
+  (cancel)="handleCancelEdit()"
+/>
+
+<ff-menu-week-board
+  [state]="state()"
+  [isEditable]="true"
+  [pendingRemovalId]="pendingRemoval()?.id ?? null"
+  (retry)="handleRetry()"
+  (editDish)="handleEdit($event)"
+  (removeRequested)="handleRemoveRequested($event)"
+  (removeConfirmed)="handleRemoveConfirmed($event)"
+  (removeCancelled)="handleRemoveCancelled()"
+/>

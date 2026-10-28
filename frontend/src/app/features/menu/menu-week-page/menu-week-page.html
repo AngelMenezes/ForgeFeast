@@ -1,0 +1,8 @@
+<h1 class="menu-page__title">Cardápio da semana</h1>
+<ff-week-navigator
+  [weekStart]="weekStart()"
+  (previous)="handlePreviousWeek()"
+  (next)="handleNextWeek()"
+  (current)="handleCurrentWeek()"
+/>
+<ff-menu-week-board [state]="state()" (retry)="handleRetry()" />

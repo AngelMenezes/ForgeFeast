@@ -1,0 +1,78 @@
+<form class="dish-form" novalidate [formGroup]="form" (ngSubmit)="handleSubmit()">
+  <h2 class="dish-form__title">{{ isEditing() ? 'Editar prato' : 'Novo prato' }}</h2>
+
+  @if (generalMessages().length > 0) {
+    <div class="dish-form__alert" role="alert">
+      @for (message of generalMessages(); track message) {
+        <p class="dish-form__alert-text">{{ message }}</p>
+      }
+    </div>
+  }
+
+  <div class="dish-form__field">
+    <label class="dish-form__label" for="dish-date">Dia</label>
+    <select
+      id="dish-date"
+      class="dish-form__control"
+      formControlName="date"
+      [attr.aria-invalid]="errorFor('date') ? 'true' : null"
+      [attr.aria-describedby]="errorFor('date') ? 'dish-date-error' : null"
+    >
+      @for (day of weekDays(); track day) {
+        <option [value]="day">{{ labelFor(day) }}</option>
+      }
+    </select>
+    @if (errorFor('date'); as message) {
+      <p id="dish-date-error" class="dish-form__error">{{ message }}</p>
+    }
+  </div>
+
+  <div class="dish-form__field">
+    <label class="dish-form__label" for="dish-name">Nome do prato</label>
+    <input
+      #nameInput
+      id="dish-name"
+      class="dish-form__control"
+      type="text"
+      formControlName="name"
+      autocomplete="off"
+      [attr.maxlength]="nameMaxLength"
+      [attr.aria-invalid]="errorFor('name') ? 'true' : null"
+      [attr.aria-describedby]="errorFor('name') ? 'dish-name-error' : null"
+    />
+    @if (errorFor('name'); as message) {
+      <p id="dish-name-error" class="dish-form__error">{{ message }}</p>
+    }
+  </div>
+
+  <div class="dish-form__field">
+    <label class="dish-form__label" for="dish-description">Descrição (opcional)</label>
+    <textarea
+      id="dish-description"
+      class="dish-form__control"
+      rows="3"
+      formControlName="description"
+      [attr.maxlength]="descriptionMaxLength"
+      [attr.aria-invalid]="errorFor('description') ? 'true' : null"
+      [attr.aria-describedby]="errorFor('description') ? 'dish-description-error' : null"
+    ></textarea>
+    @if (errorFor('description'); as message) {
+      <p id="dish-description-error" class="dish-form__error">{{ message }}</p>
+    }
+  </div>
+
+  <div class="dish-form__actions">
+    <button class="dish-form__button" type="submit" [disabled]="isSaving()">
+      {{ isSaving() ? 'Salvando…' : isEditing() ? 'Salvar alterações' : 'Adicionar prato' }}
+    </button>
+    @if (isEditing()) {
+      <button
+        class="dish-form__button dish-form__button--secondary"
+        type="button"
+        (click)="handleCancel()"
+      >
+        Cancelar edição
+      </button>
+    }
+  </div>
+</form>
