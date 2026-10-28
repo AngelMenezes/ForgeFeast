@@ -2,7 +2,7 @@
 
 Data: 2026-10-27
 Autor: IRONLAW (Arquiteto)
-Escopo: base técnica do projeto (F00 — Setup do projeto) e fronteiras, contrato e modelo de dados do F01 — Cardápio da semana. Este documento **não** descreve regras de negócio; elas pertencem às features P1/P2 e aos respectivos tickets.
+Escopo: base técnica do projeto (F00 — Setup do projeto) e fronteiras, contrato e modelo de dados do F01 — Cardápio da semana e do F02 — Carrinho e pedido individual. Este documento **não** descreve regras de negócio; elas pertencem às features P1/P2 e aos respectivos tickets.
 
 ## 1. Visão geral
 
@@ -66,7 +66,11 @@ op-002-forgefeast/
 │   │       │       ├── IHealthService.cs / HealthService.cs
 │   │       │       └── IHealthRepository.cs / HealthRepository.cs
 │   │       │   └── Menu/                 # F01 Cardápio da semana (ADR-012): MenuEndpoints, MenuContracts,
-│   │       │                             # DishRequestValidator, IMenuService/MenuService, IDishRepository/DishRepository
+│   │       │                             # DishRequestValidator, IMenuService/MenuService, IDishRepository/DishRepository,
+│   │       │                             # IDishOrderLookup (porta implementada por Orders, ADR-017)
+│   │       │   └── Orders/               # F02 Pedido individual (ADR-014 a ADR-017): OrderEndpoints, OrderContracts,
+│   │       │                             # OrderValidator, OrderingOptions, OrderCutoffPolicy, IOrderService/OrderService,
+│   │       │                             # IOrderRepository/OrderRepository, DishOrderLookup
 │   │       │   # cada feature futura repete este formato em Features/<Feature>/
 │   │       └── Infrastructure/
 │   │           ├── Configuration/        # DotEnvLoader (.env só em Development)
@@ -74,7 +78,7 @@ op-002-forgefeast/
 │   │           │   ├── DatabaseOptions.cs
 │   │           │   ├── ISqlConnectionFactory.cs / SqlConnectionFactory.cs
 │   │           │   ├── DatabaseMigrator.cs   # DbUp
-│   │           │   ├── Migrations/           # NNNN_descricao.sql (embedded resources): 0001_baseline, 0002_create_dish
+│   │           │   ├── Migrations/           # NNNN_descricao.sql (embedded resources): 0001_baseline, 0002_create_dish, 0003_create_order
 │   │           │   └── Seeds/                # (P2, a criar) dados de exemplo, separados do schema
 │   │           └── Errors/               # GlobalExceptionHandler (ProblemDetails)
 │   └── tests/
@@ -125,6 +129,10 @@ flowchart LR
 
 Regras: endpoints não executam SQL; repositórios não contêm regra de negócio; DTOs de contrato (`Contracts`) não são reutilizados como linhas de banco.
 
+Dependência entre features da API (ADR-017): `Orders` chama `IMenuService` para validar pratos; `Menu` consulta o uso de um prato pela porta `IDishOrderLookup`, que ela define e `Orders` implementa. Não há referência de `Menu` para tipos de `Orders`.
+
+No frontend, a F02 segue o padrão já usado pela F01: o serviço HTTP de pedidos fica em `core/orders` (como `core/menu`), e a tela do carrinho em `features/orders`, que lê o cardápio por `core/menu`. O estado do carrinho é um `signal` local da feature, sem chamar a API até o envio.
+
 ## 5. Contrato da API
 
 - Fonte da verdade: [`docs/api/openapi.yaml`](../api/openapi.yaml) (OpenAPI 3.0.3). Ver [ADR-007](adr/ADR-007-manter-contrato-openapi-versionado.md).
@@ -140,23 +148,43 @@ Regras: endpoints não executam SQL; repositórios não contêm regra de negóci
 | `POST /api/dishes` | F01 | 201 `Dish` + `Location` | 400 `date`/`name`/`description` |
 | `GET /api/dishes/{id}` | F01 | 200 `Dish` | 404 |
 | `PUT /api/dishes/{id}` | F01 | 200 `Dish` | 400 (validado antes do 404), 404 |
-| `DELETE /api/dishes/{id}` | F01 | 204 | 404 (409 com pedidos entra na F02) |
+| `DELETE /api/dishes/{id}` | F01/F02 | 204 | 404, 409 prato com pedidos (ADR-017) |
+| `POST /api/orders` | F02 | 201 `Order` + `Location` | 400 `name`/`date`/`items`, 422 encerrado, 409 já existe |
+| `GET /api/orders?name=&date=` | F02 | 200 `Order` | 400 `name`/`date`, 404 |
+| `PUT /api/orders?name=&date=` | F02 | 200 `Order` (substitui os itens) | 400 `name`/`date`/`items`, 422 encerrado, 404 |
+| `GET /api/orders/window?date=` | F02 | 200 `OrderWindow` (`cutoffTime`, `closesAt`, `isOpen`) | 400 `date` |
+
+Ordem de avaliação em POST/PUT de pedido (ADR-014): formato (400) → pratos da data (400) → data passada ou dia encerrado (422) → 404 (PUT) ou 409 (POST).
 
 ## 5.1 Modelo de dados
 
-Ver [ADR-012](adr/ADR-012-definir-fronteiras-entre-angular-api-e-sql-server.md) e o script `Migrations/0002_create_dish.sql`.
+Ver [ADR-012](adr/ADR-012-definir-fronteiras-entre-angular-api-e-sql-server.md), [ADR-016](adr/ADR-016-modelar-pedidos-em-order-e-orderitem-com-unicidade-no-banco.md) e os scripts `Migrations/0002_create_dish.sql` e `Migrations/0003_create_order.sql`.
 
 ```mermaid
 erDiagram
+    Dish ||--o{ OrderItem : "pedido em"
+    Order ||--|{ OrderItem : contém
     Dish {
         INT Id PK "IDENTITY"
         DATE Date "NOT NULL, CHECK dia útil, IX_Dish_Date"
         NVARCHAR_100 Name "NOT NULL, CHECK LEN > 0"
         NVARCHAR_300 Description "NULL"
     }
+    Order {
+        INT Id PK "IDENTITY"
+        NVARCHAR_60 CustomerName "NOT NULL, CI_AS, UNIQUE com Date"
+        DATE Date "NOT NULL, CHECK dia útil, IX_Order_Date"
+        DATETIME2_0 CreatedAtUtc "NOT NULL"
+        DATETIME2_0 UpdatedAtUtc "NOT NULL"
+    }
+    OrderItem {
+        INT OrderId PK, FK "CASCADE"
+        INT DishId PK, FK "sem cascata, IX_OrderItem_DishId"
+        TINYINT Quantity "CHECK 1 a 10"
+    }
 ```
 
-A F02 acrescenta `OrderItem` com FK para `Dish`.
+`Order` é palavra reservada: todo SQL usa `dbo.[Order]`.
 
 ## 6. Configuração
 
@@ -173,6 +201,8 @@ Precedência na API (maior vence): variáveis de ambiente do processo > `.env` d
 | `Database__ApplyMigrationsOnStartup` | API | `true` | aplica scripts DbUp ao subir |
 | `ASPNETCORE_ENVIRONMENT` | API | `Development` | ambiente |
 | `ASPNETCORE_URLS` | API | `http://localhost:5080` | endereço da API |
+| `Ordering__CutoffTime` | API | `12:00` | horário de corte dos pedidos (`HH:mm`); padrão em `appsettings.json` (ADR-015) |
+| `Ordering__TimeZone` | API | `America/Sao_Paulo` | id IANA do fuso da regra de corte; padrão em `appsettings.json` (ADR-015) |
 
 O frontend não lê `.env`: chama sempre o caminho relativo `/api`, resolvido pelo `proxy.conf.json` em desenvolvimento.
 
@@ -197,6 +227,8 @@ Logs via `ILogger` padrão do ASP.NET Core no console, sem provider externo. Hea
 - **.NET 9 é STS e sai de suporte em 2026-11-10.** Fixamos 9.0.200 por ser o SDK instalado e o exigido pelo comandante; a migração para .NET 10 (LTS) fica registrada como acompanhamento no [ADR-002](adr/ADR-002-fixar-versoes-da-toolchain.md).
 - Integração depende de Docker ativo (Testcontainers e banco local).
 - Senha do `sa` duplicada entre `MSSQL_SA_PASSWORD` e a connection string no `.env`; aceito pela simplicidade (ver ADR-009).
+- Regra de corte depende do fuso configurado; em imagem Linux sem `tzdata` a API não sobe (ADR-015).
+- Alterar a data de um prato que já tem pedidos (`PUT /api/dishes/{id}`) deixa o item apontando para um prato de outro dia; decisão pendente com o PO (ADR-016).
 
 ## Decisões
 
@@ -215,5 +247,9 @@ Logs via `ILogger` padrão do ASP.NET Core no console, sem provider externo. Hea
 | [ADR-011](adr/ADR-011-estruturar-frontend-angular-em-core-shared-features.md) | Estruturar o frontend Angular em core, shared e features com componentes standalone | Proposto | 2026-10-27 |
 | [ADR-012](adr/ADR-012-definir-fronteiras-entre-angular-api-e-sql-server.md) | Definir fronteiras entre Angular, API e SQL Server | Proposto | 2026-10-27 |
 | [ADR-013](adr/ADR-013-padronizar-erros-de-validacao-400-por-campo.md) | Padronizar erros de validação 400 por campo do contrato | Proposto | 2026-10-27 |
+| [ADR-014](adr/ADR-014-identificar-pedido-por-nome-e-data-em-api-orders.md) | Identificar o pedido por nome e data em /api/orders | Proposto | 2026-10-27 |
+| [ADR-015](adr/ADR-015-usar-timeprovider-e-fuso-configuravel-no-corte-de-pedidos.md) | Usar TimeProvider e fuso configurável no corte de pedidos | Proposto | 2026-10-27 |
+| [ADR-016](adr/ADR-016-modelar-pedidos-em-order-e-orderitem-com-unicidade-no-banco.md) | Modelar pedidos em Order e OrderItem com unicidade no banco | Proposto | 2026-10-27 |
+| [ADR-017](adr/ADR-017-integrar-menu-e-orders-por-servico-e-porta-de-uso-do-prato.md) | Integrar Menu e Orders por serviço e por porta de uso do prato | Proposto | 2026-10-27 |
 
 Todas as ADRs estão `Proposto` e precisam de revisão e aprovação humana (mudança para `Aceito`, com data) antes de qualquer feature P1 começar.

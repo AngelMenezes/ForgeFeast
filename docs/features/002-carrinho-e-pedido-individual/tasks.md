@@ -3,10 +3,10 @@
 Rota: GENESIS > IRONLAW > ANVIL > EMBER > SNIPER. Pré-requisito: F01 aprovada.
 
 ## IRONLAW (arquitetura)
-- [ ] T-01 ADR de pedidos: rotas (sugestão: `POST /api/orders`, `GET`/`PUT` por nome e data; nome em query ou corpo, evitando nome em path), esquema de resposta, onde o corte é exposto na API (P-06), mensagens de 400/422/409 e chaves de `errors` para itens (ADR-013).
-- [ ] T-02 ADR do relógio e do fuso: `TimeProvider` injetado, fuso `America/Sao_Paulo` portável Windows/Linux, configuração do corte (ADR-009) e como simular o horário na demo (P-07).
-- [ ] T-03 Modelo de dados: tabela de cabeçalho + `OrderItem`, FK, índice único (nome normalizado, data), collation; migração DbUp numerada após `0002`.
-- [ ] T-04 Atualizar `docs/api/openapi.yaml` (contrato antes da implementação) e `overview.md`.
+- [x] T-01 ADR de pedidos: rotas (sugestão: `POST /api/orders`, `GET`/`PUT` por nome e data; nome em query ou corpo, evitando nome em path), esquema de resposta, onde o corte é exposto na API (P-06), mensagens de 400/422/409 e chaves de `errors` para itens (ADR-013). → [ADR-014](../../architecture/adr/ADR-014-identificar-pedido-por-nome-e-data-em-api-orders.md) e [ADR-017](../../architecture/adr/ADR-017-integrar-menu-e-orders-por-servico-e-porta-de-uso-do-prato.md)
+- [x] T-02 ADR do relógio e do fuso: `TimeProvider` injetado, fuso `America/Sao_Paulo` portável Windows/Linux, configuração do corte (ADR-009) e como simular o horário na demo (P-07). → [ADR-015](../../architecture/adr/ADR-015-usar-timeprovider-e-fuso-configuravel-no-corte-de-pedidos.md)
+- [x] T-03 Modelo de dados: tabela de cabeçalho + `OrderItem`, FK, índice único (nome normalizado, data), collation; migração DbUp numerada após `0002`. → [ADR-016](../../architecture/adr/ADR-016-modelar-pedidos-em-order-e-orderitem-com-unicidade-no-banco.md) (script `0003_create_order.sql` fica com ANVIL em T-05)
+- [x] T-04 Atualizar `docs/api/openapi.yaml` (contrato antes da implementação) e `overview.md`.
 
 ## ANVIL (API)
 - [ ] T-05 Migração DbUp e repositório Dapper com transação (RF-09, RNF-05).

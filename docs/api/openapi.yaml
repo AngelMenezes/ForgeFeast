@@ -1,13 +1,15 @@
 openapi: 3.0.3
 info:
   title: ForgeFeast API
-  version: 0.2.0
+  version: 0.3.0
   description: |
     Contrato da API do ForgeFeast (OP-002). Fonte da verdade conforme ADR-007.
     Todos os endpoints ficam sob /api. Erros seguem ProblemDetails (RFC 9457, ADR-008).
     Erros de validação (400) seguem ADR-013: `errors` é um mapa cuja chave é o nome do
-    campo do contrato em camelCase (`date`, `name`, `description`, `weekStart`).
-    Datas são `yyyy-MM-dd`, sem hora e sem fuso.
+    campo do contrato em camelCase (`date`, `name`, `description`, `weekStart`, `items`).
+    Datas são `yyyy-MM-dd`, sem hora e sem fuso. Instantes (`createdAt`, `closesAt`) são
+    ISO 8601 com offset.
+    Pedidos (F02) seguem ADR-014 (rotas e mensagens), ADR-015 (corte) e ADR-016 (dados).
 servers:
   - url: http://localhost:5080
     description: API local (desenvolvimento)
@@ -16,6 +18,8 @@ tags:
     description: Verificação de saúde da API e do banco.
   - name: Menu
     description: Cardápio da semana e pratos por dia útil (F01).
+  - name: Orders
+    description: Pedido individual por nome e data, com horário de corte (F02).
 paths:
   /api/menu:
     get:
@@ -199,13 +203,204 @@ paths:
       operationId: deleteDish
       summary: Remove um prato.
       description: |
-        No F01 não existem pedidos, então a remoção sempre ocorre se o prato existir.
-        A resposta 409 para prato com pedidos entra no contrato na F02, junto com a tabela OrderItem.
+        Ordem de avaliação (ADR-017): prato inexistente responde 404; prato presente em algum
+        pedido, de qualquer data, responde 409 e continua no cardápio; caso contrário é removido.
       responses:
         '204':
           description: Prato removido.
         '404':
           $ref: '#/components/responses/DishNotFound'
+        '409':
+          description: O prato está em ao menos um pedido e não pode ser removido.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.10
+                title: Prato com pedidos.
+                status: 409
+                detail: Este prato tem pedidos e não pode ser removido.
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/orders:
+    post:
+      tags: [Orders]
+      operationId: createOrder
+      summary: Cria o pedido de uma pessoa num dia útil.
+      description: |
+        Ordem de avaliação (ADR-014): formato (400) → pratos da data (400) → data passada ou
+        dia encerrado (422) → pedido já existente para o nome e a data (409). Nada é gravado
+        em caso de erro; cabeçalho e itens são gravados na mesma transação (RNF-05).
+        O nome é gravado após o trim; a unicidade ignora maiúsculas e minúsculas, mas não acentos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+            example:
+              name: Ana Souza
+              date: '2026-10-28'
+              items:
+                - dishId: 3
+                  quantity: 1
+                - dishId: 4
+                  quantity: 2
+      responses:
+        '201':
+          description: Pedido criado.
+          headers:
+            Location:
+              description: URL do pedido (`/api/orders?name={nome codificado}&date={yyyy-MM-dd}`).
+              schema:
+                type: string
+              example: /api/orders?name=Ana%20Souza&date=2026-10-28
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+              example:
+                name: Ana Souza
+                date: '2026-10-28'
+                items:
+                  - dishId: 3
+                    dishName: Frango grelhado
+                    quantity: 1
+                  - dishId: 4
+                    dishName: Salada verde
+                    quantity: 2
+                createdAt: '2026-10-28T13:05:00Z'
+                updatedAt: '2026-10-28T13:05:00Z'
+        '400':
+          $ref: '#/components/responses/OrderValidationError'
+        '409':
+          description: Já existe pedido para o nome (normalizado) e a data. O pedido existente não é alterado.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.10
+                title: Pedido já existe.
+                status: 409
+                detail: Já existe um pedido de Ana Souza para 28/10/2026. Altere o pedido existente.
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+        '422':
+          $ref: '#/components/responses/OrderClosed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags: [Orders]
+      operationId: getOrder
+      summary: Consulta o pedido de uma pessoa numa data.
+      description: |
+        Funciona para qualquer dia útil, inclusive datas passadas e dias encerrados.
+        A busca ignora espaços nas pontas e maiúsculas/minúsculas do nome.
+      parameters:
+        - $ref: '#/components/parameters/OrderName'
+        - $ref: '#/components/parameters/OrderDate'
+      responses:
+        '200':
+          description: Pedido encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: '`name` ou `date` ausente ou inválido (chaves `name` e `date`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+              example:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+                title: Um ou mais campos são inválidos.
+                status: 400
+                errors:
+                  name:
+                    - Informe o seu nome.
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+        '404':
+          $ref: '#/components/responses/OrderNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Orders]
+      operationId: updateOrder
+      summary: Substitui todos os itens do pedido existente de uma pessoa numa data.
+      description: |
+        Não cria pedido e não altera o nome gravado. Os itens antigos são apagados e os novos
+        gravados na mesma transação. Mesmas validações do POST; `name` e `date` vêm da query.
+        Ordem de avaliação: formato (400) → pratos da data (400) → data passada ou dia
+        encerrado (422) → pedido inexistente (404).
+      parameters:
+        - $ref: '#/components/parameters/OrderName'
+        - $ref: '#/components/parameters/OrderDate'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItemsRequest'
+            example:
+              items:
+                - dishId: 4
+                  quantity: 1
+      responses:
+        '200':
+          description: Pedido alterado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+              example:
+                name: Ana Souza
+                date: '2026-10-28'
+                items:
+                  - dishId: 4
+                    dishName: Salada verde
+                    quantity: 1
+                createdAt: '2026-10-28T13:05:00Z'
+                updatedAt: '2026-10-28T14:10:00Z'
+        '400':
+          $ref: '#/components/responses/OrderValidationError'
+        '404':
+          $ref: '#/components/responses/OrderNotFound'
+        '422':
+          $ref: '#/components/responses/OrderClosed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/orders/window:
+    get:
+      tags: [Orders]
+      operationId: getOrderWindow
+      summary: Informa o horário de corte de um dia útil e se ele ainda aceita pedidos.
+      description: |
+        Calculado com o relógio do servidor no fuso configurado (ADR-015). O frontend usa
+        `cutoffTime` para exibir o corte e `isOpen` para decidir entre edição e somente leitura.
+      parameters:
+        - $ref: '#/components/parameters/OrderDate'
+      responses:
+        '200':
+          description: Janela de pedidos do dia.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderWindow'
+              example:
+                date: '2026-10-28'
+                cutoffTime: '12:00'
+                timeZone: America/Sao_Paulo
+                closesAt: '2026-10-28T12:00:00-03:00'
+                isOpen: true
+        '400':
+          description: '`date` ausente, fora do formato ou em fim de semana (chave `date`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/health:
@@ -340,6 +535,124 @@ components:
           maxItems: 5
           items:
             $ref: '#/components/schemas/WeekMenuDay'
+    OrderItemRequest:
+      type: object
+      description: |
+        Item do pedido. Campos ausentes ou fora do intervalo geram erro em `errors.items`.
+        Valor não inteiro é corpo malformado (400 sem `errors`, ADR-013).
+      required: [dishId, quantity]
+      properties:
+        dishId:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Prato cadastrado na mesma data do pedido.
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 10
+    OrderItemsRequest:
+      type: object
+      description: |
+        Corpo do PUT. `items`: obrigatório, 1 a 20 itens, sem `dishId` repetido.
+        Propriedades desconhecidas são ignoradas.
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/OrderItemRequest'
+    OrderRequest:
+      type: object
+      description: |
+        Corpo do POST. Regras validadas pela API (ADR-013, ADR-014):
+        - `name`: obrigatório; espaços nas pontas são removidos; 1 a 60 caracteres após o trim.
+        - `date`: obrigatório, `yyyy-MM-dd`, segunda a sexta; recebido como texto.
+        - `items`: como em `OrderItemsRequest`.
+      required: [name, date, items]
+      properties:
+        name:
+          type: string
+          maxLength: 60
+          example: Ana Souza
+        date:
+          type: string
+          format: date
+          example: '2026-10-28'
+        items:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/OrderItemRequest'
+    OrderItem:
+      type: object
+      required: [dishId, dishName, quantity]
+      properties:
+        dishId:
+          type: integer
+          format: int32
+        dishName:
+          type: string
+          maxLength: 100
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 10
+    Order:
+      type: object
+      required: [name, date, items, createdAt, updatedAt]
+      properties:
+        name:
+          type: string
+          maxLength: 60
+          description: Nome como foi gravado no POST (após o trim).
+        date:
+          type: string
+          format: date
+        items:
+          type: array
+          minItems: 1
+          description: Itens em ordem de `dishId`.
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        createdAt:
+          type: string
+          format: date-time
+          description: Instante da criação, em UTC.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Instante da última alteração, em UTC (igual a `createdAt` se nunca alterado).
+    OrderWindow:
+      type: object
+      required: [date, cutoffTime, timeZone, closesAt, isOpen]
+      properties:
+        date:
+          type: string
+          format: date
+        cutoffTime:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+          description: Horário de corte configurado (`HH:mm`), no fuso `timeZone`. Exibido como está.
+          example: '12:00'
+        timeZone:
+          type: string
+          description: Id IANA do fuso usado na regra.
+          example: America/Sao_Paulo
+        closesAt:
+          type: string
+          format: date-time
+          description: Instante do corte deste dia, com o offset do fuso.
+        isOpen:
+          type: boolean
+          description: |
+            true se `date` é futura ou é hoje antes do corte; false se é passada ou é hoje a
+            partir do corte.
     ProblemDetails:
       type: object
       description: Erro no formato RFC 9457 (application/problem+json).
@@ -369,7 +682,108 @@ components:
                 type: array
                 items:
                   type: string
+  parameters:
+    OrderName:
+      name: name
+      in: query
+      required: true
+      description: Nome da pessoa (codificado na URL). Espaços nas pontas e maiúsculas/minúsculas são ignorados.
+      schema:
+        type: string
+        maxLength: 60
+      example: Ana Souza
+    OrderDate:
+      name: date
+      in: query
+      required: true
+      description: Dia útil (`yyyy-MM-dd`). Sábado ou domingo responde 400 em `date`.
+      schema:
+        type: string
+        format: date
+      example: '2026-10-28'
   responses:
+    OrderValidationError:
+      description: |
+        Requisição inválida (ADR-013, ADR-014). Chaves possíveis em `errors`: `name`, `date`, `items`.
+        Todos os campos inválidos vêm juntos; erros de item ficam em `items` e citam o `dishId`.
+        A checagem de pratos da data (prato inexistente ou de outro dia) só ocorre se o formato
+        estiver válido. Nada é gravado.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+          examples:
+            format:
+              summary: nome vazio, data em fim de semana e quantidade fora do intervalo
+              value:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+                title: Um ou mais campos são inválidos.
+                status: 400
+                errors:
+                  name:
+                    - Informe o seu nome.
+                  date:
+                    - Escolha um dia útil (segunda a sexta).
+                  items:
+                    - A quantidade do prato 3 deve ser de 1 a 10.
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+            emptyItems:
+              summary: lista de itens vazia
+              value:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+                title: Um ou mais campos são inválidos.
+                status: 400
+                errors:
+                  items:
+                    - Adicione ao menos um prato ao pedido.
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+            dishNotOnMenu:
+              summary: prato inexistente ou de outra data
+              value:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.1
+                title: Um ou mais campos são inválidos.
+                status: 400
+                errors:
+                  items:
+                    - O prato 42 não está no cardápio de 28/10/2026.
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+    OrderNotFound:
+      description: Não existe pedido para o nome e a data.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://tools.ietf.org/html/rfc9110#section-15.5.5
+            title: Pedido não encontrado.
+            status: 404
+            detail: Não existe pedido de Ana Souza para 28/10/2026.
+            traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+    OrderClosed:
+      description: |
+        Pedido encerrado (ADR-015): a data é anterior a hoje, ou é hoje a partir do horário de
+        corte. Nada é gravado ou alterado.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          examples:
+            afterCutoff:
+              summary: hoje, a partir do corte
+              value:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.21
+                title: Pedido encerrado.
+                status: 422
+                detail: Os pedidos de 28/10/2026 foram encerrados às 12:00.
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+            pastDate:
+              summary: data anterior a hoje
+              value:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.21
+                title: Pedido encerrado.
+                status: 422
+                detail: Não é possível enviar ou alterar pedidos de datas passadas.
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
     BadRequest:
       description: Requisição inválida.
       content:
