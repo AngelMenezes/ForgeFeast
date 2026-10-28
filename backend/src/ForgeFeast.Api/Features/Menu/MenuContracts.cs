@@ -14,5 +14,12 @@ public sealed record MenuDayResponse(
 
 public sealed record WeekMenuResponse(DateOnly WeekStart, DateOnly WeekEnd, IReadOnlyList<MenuDayResponse> Days);
 
+public enum DeleteDishResult
+{
+    Deleted,
+    NotFound,
+    HasOrders,
+}
+
 /// <summary>Prato já validado e normalizado (trim aplicado, descrição vazia como null).</summary>
 public sealed record DishInput(DateOnly Date, string Name, string? Description);

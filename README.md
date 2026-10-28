@@ -58,6 +58,8 @@ O Docker precisa estar **em execução**: confirme com `docker info` (sem erro d
    - Documento OpenAPI gerado (só em Development): http://localhost:5080/openapi/v1.json
    - Se o banco estiver fora do ar, `/api/health` responde `503` com `status: Unhealthy`.
 
+   **Pedidos (F02).** Os pedidos fecham no horário de corte (padrão `12:00`, fuso `America/Sao_Paulo`). Para a demo, defina no `.env` antes de subir a API: `Ordering__CutoffTime=23:59` (dia aberto à tarde) ou `Ordering__CutoffTime=00:00` (hoje já encerrado). Valor inválido impede a API de subir. Endpoints: `POST/GET/PUT /api/orders` e `GET /api/orders/window?date=`.
+
 5. **Parar / resetar o banco:**
 
    ```bash

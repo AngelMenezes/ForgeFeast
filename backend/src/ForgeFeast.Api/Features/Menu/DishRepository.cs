@@ -1,11 +1,14 @@
 using System.Data;
 using Dapper;
 using ForgeFeast.Api.Infrastructure.Database;
+using Microsoft.Data.SqlClient;
 
 namespace ForgeFeast.Api.Features.Menu;
 
 public sealed class DishRepository : IDishRepository
 {
+    private const int SqlForeignKeyViolation = 547;
+
     private const string Columns = "Id, [Date], Name, Description";
     private const string OutputColumns = "INSERTED.Id, INSERTED.[Date], INSERTED.Name, INSERTED.Description";
 
@@ -82,7 +85,22 @@ public sealed class DishRepository : IDishRepository
         return row?.ToResponse();
     }
 
-    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<DishResponse>> ListByIdsAsync(
+        IReadOnlyCollection<int> ids,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+
+        var command = new CommandDefinition(
+            $"SELECT {Columns} FROM dbo.Dish WHERE Id IN @Ids ORDER BY Id;",
+            new { Ids = ids },
+            cancellationToken: cancellationToken);
+
+        var rows = await connection.QueryAsync<DishRow>(command);
+        return rows.Select(row => row.ToResponse()).ToList();
+    }
+
+    public async Task<DeleteDishResult> DeleteAsync(int id, CancellationToken cancellationToken)
     {
         await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken);
 
@@ -91,8 +109,16 @@ public sealed class DishRepository : IDishRepository
             new { Id = id },
             cancellationToken: cancellationToken);
 
-        var affected = await connection.ExecuteAsync(command);
-        return affected > 0;
+        try
+        {
+            var affected = await connection.ExecuteAsync(command);
+            return affected > 0 ? DeleteDishResult.Deleted : DeleteDishResult.NotFound;
+        }
+        catch (SqlException exception) when (exception.Number == SqlForeignKeyViolation)
+        {
+            // Corrida com a criação de um pedido: a FK de OrderItem segura o prato (ADR-017).
+            return DeleteDishResult.HasOrders;
+        }
     }
 
     // DateOnly não é mapeado pelo SqlClient: enviamos DateTime com DbType.Date para manter o índice utilizável.

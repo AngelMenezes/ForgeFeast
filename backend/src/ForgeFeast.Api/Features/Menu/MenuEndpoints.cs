@@ -102,8 +102,17 @@ public static class MenuEndpoints
         IMenuService menuService,
         CancellationToken cancellationToken)
     {
-        var deleted = await menuService.DeleteDishAsync(id, cancellationToken);
-        return deleted ? TypedResults.NoContent() : TypedResults.NotFound();
+        var result = await menuService.DeleteDishAsync(id, cancellationToken);
+        return result switch
+        {
+            DeleteDishResult.Deleted => TypedResults.NoContent(),
+            DeleteDishResult.HasOrders => TypedResults.Problem(
+                title: "Prato com pedidos.",
+                detail: "Este prato tem pedidos e não pode ser removido.",
+                statusCode: StatusCodes.Status409Conflict,
+                type: "https://tools.ietf.org/html/rfc9110#section-15.5.10"),
+            _ => TypedResults.NotFound(),
+        };
     }
 
     private static ValidationProblem ValidationProblem(IReadOnlyDictionary<string, string[]> errors)

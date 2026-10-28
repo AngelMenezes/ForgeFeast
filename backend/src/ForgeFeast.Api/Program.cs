@@ -1,5 +1,6 @@
 using ForgeFeast.Api.Features.Health;
 using ForgeFeast.Api.Features.Menu;
+using ForgeFeast.Api.Features.Orders;
 using ForgeFeast.Api.Infrastructure.Configuration;
 using ForgeFeast.Api.Infrastructure.Database;
 using ForgeFeast.Api.Infrastructure.Errors;
@@ -35,6 +36,7 @@ builder.Services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddHealthFeature();
 builder.Services.AddMenuFeature();
+builder.Services.AddOrdersFeature();
 
 builder.Services.AddProblemDetails(options =>
     options.CustomizeProblemDetails = context =>
@@ -61,6 +63,7 @@ if (app.Environment.IsDevelopment())
 var api = app.MapGroup("/api");
 api.MapHealthEndpoints();
 api.MapMenuEndpoints();
+api.MapOrderEndpoints();
 
 app.Run();
 

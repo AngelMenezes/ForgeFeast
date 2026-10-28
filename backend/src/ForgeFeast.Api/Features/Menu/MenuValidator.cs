@@ -77,7 +77,7 @@ public static class MenuValidator
             errors);
     }
 
-    private static bool TryParseDate(string? value, out DateOnly date)
+    internal static bool TryParseDate(string? value, out DateOnly date)
     {
         return DateOnly.TryParseExact(value, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
     }

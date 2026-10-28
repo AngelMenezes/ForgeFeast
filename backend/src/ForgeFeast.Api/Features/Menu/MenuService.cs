@@ -5,10 +5,12 @@ public sealed class MenuService : IMenuService
     private const int WorkDaysPerWeek = 5;
 
     private readonly IDishRepository _repository;
+    private readonly IDishOrderLookup _orderLookup;
 
-    public MenuService(IDishRepository repository)
+    public MenuService(IDishRepository repository, IDishOrderLookup orderLookup)
     {
         _repository = repository;
+        _orderLookup = orderLookup;
     }
 
     public async Task<WeekMenuResponse> GetWeekAsync(DateOnly weekStart, CancellationToken cancellationToken)
@@ -40,8 +42,30 @@ public sealed class MenuService : IMenuService
         return _repository.UpdateAsync(id, dish, cancellationToken);
     }
 
-    public Task<bool> DeleteDishAsync(int id, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<DishResponse>> GetDishesAsync(
+        IReadOnlyCollection<int> ids,
+        CancellationToken cancellationToken)
     {
-        return _repository.DeleteAsync(id, cancellationToken);
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        return await _repository.ListByIdsAsync(ids, cancellationToken);
+    }
+
+    public async Task<DeleteDishResult> DeleteDishAsync(int id, CancellationToken cancellationToken)
+    {
+        if (await _repository.GetByIdAsync(id, cancellationToken) is null)
+        {
+            return DeleteDishResult.NotFound;
+        }
+
+        if (await _orderLookup.HasOrdersAsync(id, cancellationToken))
+        {
+            return DeleteDishResult.HasOrders;
+        }
+
+        return await _repository.DeleteAsync(id, cancellationToken);
     }
 }
