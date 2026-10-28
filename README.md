@@ -119,6 +119,14 @@ npx playwright show-report  # abre o relatório HTML da última execução
 
 Em falha, o trace e o screenshot ficam em `frontend/test-results/`. O cenário de erro da API usa resposta simulada (`page.route`) e não depende da API.
 
+**F01 (cardápio da semana).** Os specs `dish-admin.spec.ts` (cadastro: criar, editar, remover com confirmação, validações) e `menu-week.spec.ts` (visualização: cinco dias, estado vazio, navegação) usam a **API real e o banco com a migração `0002` aplicada**. Para isolar os dados:
+
+- O relógio do navegador é fixado em março de 2030 (`page.clock`), e cada worker usa uma semana própria a partir de 04/03/2030. Os testes não dependem do dia em que rodam.
+- Antes e depois de cada teste a semana do worker é esvaziada pela API. **Não rode a suíte contra um banco com dados que você queira manter nessas semanas** (2030).
+- Os 400 de `date` (fim de semana) só aparecem na tela com resposta simulada, porque o seletor de dia não oferece sábado nem domingo; a recusa real da API é conferida por chamada direta.
+
+> Estado: os specs da F01 foram escritos por leitura do código, **sem execução** (a etapa não teve terminal). Rode `npm run e2e` para validá-los.
+
 O endereço da API fica em `src/environments/environment*.ts` (`apiBaseUrl: '/api'`, caminho relativo resolvido pelo proxy). O frontend não lê o `.env`.
 
 ## Build, lint e testes (backend)
