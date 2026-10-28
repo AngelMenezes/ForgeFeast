@@ -1,0 +1,15 @@
+<div class="confirm-box" role="group" [attr.aria-label]="groupLabel()">
+  <p class="confirm-box__text">{{ message() }}</p>
+  <div class="confirm-box__actions">
+    <button
+      class="confirm-box__button confirm-box__button--danger"
+      type="button"
+      (click)="handleConfirm()"
+    >
+      {{ confirmLabel() }}
+    </button>
+    <button #cancelButton class="confirm-box__button" type="button" (click)="handleCancel()">
+      {{ cancelLabel() }}
+    </button>
+  </div>
+</div>

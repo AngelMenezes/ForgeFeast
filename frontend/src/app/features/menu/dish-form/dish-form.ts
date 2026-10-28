@@ -61,7 +61,7 @@ export class DishForm {
   readonly problem = input<ApiProblem | null>(null);
 
   readonly save = output<DishRequest>();
-  readonly cancel = output<void>();
+  readonly cancelled = output<void>();
 
   protected readonly nameMaxLength = DISH_NAME_MAX_LENGTH;
   protected readonly descriptionMaxLength = DISH_DESCRIPTION_MAX_LENGTH;
@@ -150,7 +150,7 @@ export class DishForm {
   }
 
   protected handleCancel(): void {
-    this.cancel.emit();
+    this.cancelled.emit();
   }
 
   private syncValues(dish: Dish | null, days: readonly string[]): void {

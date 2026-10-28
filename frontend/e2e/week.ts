@@ -43,9 +43,7 @@ export function weekForWorker(workerIndex: number): TestWeek {
     BASE_MONDAY_DAY + workerIndex * DAYS_IN_WEEK,
   );
   const days = Array.from({ length: WEEKDAY_NAMES.length }, (_, index) =>
-    formatIsoDate(
-      new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + index),
-    ),
+    formatIsoDate(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + index)),
   );
   const [saturday, sunday] = [5, 6].map((offset) =>
     formatIsoDate(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + offset)),

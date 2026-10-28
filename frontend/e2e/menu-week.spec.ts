@@ -46,11 +46,7 @@ test.describe('Cardápio da semana', () => {
     await expect(menu.emptyMessages).toHaveCount(3);
   });
 
-  test('a tela de visualização não oferece editar nem remover', async ({
-    page,
-    request,
-    week,
-  }) => {
+  test('a tela de visualização não oferece editar nem remover', async ({ page, request, week }) => {
     const menu = new MenuWeekPage(page, week);
     await createDish(request, { date: week.days[0], name: 'Lasanha' });
     await menu.open();

@@ -8,7 +8,9 @@ Stack: Angular (frontend), ASP.NET Core / .NET 9 (API), SQL Server 2022 em Docke
 
 > **Estado do F01 (API de pratos, ANVIL, 2026-10-27):** `Features/Menu` implementada (`GET /api/menu`, `POST/GET/PUT/DELETE /api/dishes`) com a migração `0002_create_dish.sql`. Verificados `dotnet build`, `dotnet format --verify-no-changes` e 38 testes de unidade (mais 2 de integração sem Docker). Os testes de integração de `MenuEndpointsTests` (`RequiresDocker`) **não foram executados** (Docker parado): rode `dotnet test ForgeFeast.sln` com o Docker ativo. A conferência de `/openapi/v1.json` contra `docs/api/openapi.yaml` também está pendente. Para experimentar: suba o banco e a API (seções abaixo) e abra `http://localhost:<porta>/swagger` em Development.
 
-> **Estado do F01 (telas, EMBER, 2026-10-27):** rotas `/cardapio` (visualização) e `/cadastro` (criar, editar e remover com confirmação) escritas, com testes de unidade (Vitest) para serviço, datas, erros da API, quadro da semana e a página de cadastro. **`npm install`, lint, formatação, testes e build não foram executados** (o shell foi negado na sessão): rode os comandos de [Frontend](#frontend-angular) antes de aprovar. Não há `package-lock.json`.
+> **Estado do F01 (telas, EMBER, 2026-10-27):** rotas `/cardapio` (visualização) e `/cadastro` (criar, editar e remover com confirmação) escritas, com testes de unidade (Vitest) para serviço, datas, erros da API, quadro da semana e a página de cadastro.
+
+> **Estado do F02 (telas, EMBER, 2026-10-27):** rota `/pedido` (carrinho no cliente, envio, reabertura, alteração e modo somente leitura após o corte) e mensagem de 409 em `/cadastro`. Executados em `frontend/`: `npm install`, `npm run format:check`, `npm run lint`, `npm test` (10 arquivos, 69 testes aprovados) e `npm run build`. **Não executados:** a tela contra a API real e um SQL Server (sem Docker) e o Playwright. O `package-lock.json` gerado pelo `npm install` ainda precisa ser versionado.
 
 ## Pré-requisitos
 
@@ -96,6 +98,18 @@ Requer Node.js **24.11.1** (`node --version`; com nvm: `nvm use`, que lê o `.nv
    6. **Visualizar:** abra http://localhost:4200/cardapio. São cinco seções, de segunda a sexta, e cada dia sem pratos mostra "Nenhum prato cadastrado para este dia."
 
    Estados cobertos nas duas telas: carregando, erro (com "Tentar novamente"), vazio (por dia) e sucesso.
+
+   **Demonstrar o F02 (carrinho e pedido individual)** com banco e API no ar e pratos cadastrados:
+
+   1. Abra http://localhost:4200/pedido ("Fazer pedido" no menu). O dia aberto é hoje (em sábado ou domingo, a segunda seguinte); troque pelo seletor "Dia do pedido" ou pela navegação de semana. A tela mostra o "Horário de corte" vindo da API.
+   2. **Montar:** clique em "Adicionar" num prato (entra com quantidade 1; repetir soma 1, até 10). No carrinho use "−", "+" e "Remover". Nada disso chama a API.
+   3. **Trocar de dia com itens no carrinho** pede confirmação ("Trocar de dia e limpar o carrinho" ou "Manter o dia atual"). Um carrinho já enviado troca de dia sem perguntar.
+   4. **Enviar:** informe o nome e clique em "Enviar pedido". Sem nome, o erro aparece junto ao campo e a API não é chamada. Depois do envio o botão passa a "Alterar pedido".
+   5. **Reabrir e alterar:** informe o nome e clique em "Buscar meu pedido" (também roda ao trocar de dia com o nome preenchido). Os itens enviados voltam ao carrinho; ajuste e clique em "Alterar pedido". Se o carrinho tem itens não enviados, a tela pergunta antes de substituí-los pelo pedido do servidor.
+   6. **Depois do corte:** com `Ordering__CutoffTime=00:00` na API (ver passo de pedidos acima), hoje aparece como "Pedido encerrado": sem botões de adicionar, enviar ou alterar, e "Buscar meu pedido" mostra o pedido em somente leitura. Um 422 no envio (corte atingido com a tela aberta) mostra a mensagem da API e passa a tela para somente leitura.
+   7. **Remover prato com pedido:** em `/cadastro`, "Remover" + "Confirmar remoção" num prato que está em algum pedido mostra "Este prato tem pedidos e não pode ser removido." e o prato continua na lista.
+
+   Estados cobertos: carregando e erro (cardápio e horário de corte, com "Tentar novamente"), dia sem pratos, carrinho vazio, pedido enviado e pedido encerrado.
 
 3. **Verificar lint, formatação, testes e build:**
 

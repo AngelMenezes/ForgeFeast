@@ -167,6 +167,31 @@ describe('DishAdminPage', () => {
     expect(element.querySelector('[role="status"]')?.textContent).toContain('Prato removido.');
   });
 
+  it('remover_api409_mostraMensagemDePratoComPedidosEMantemOPrato', async () => {
+    flushWeek([feijoada]);
+    await settle();
+
+    click('[aria-label="Remover Feijoada"]');
+    await settle();
+    const confirm = Array.from(element.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Confirmar remoção',
+    );
+    confirm?.click();
+    httpMock
+      .expectOne('/api/dishes/1')
+      .flush(
+        { title: 'Prato com pedidos.', detail: 'Este prato tem pedidos e não pode ser removido.' },
+        { status: 409, statusText: 'Conflict' },
+      );
+    flushWeek([feijoada]);
+    await settle();
+
+    expect(element.querySelector('.admin-page__error')?.textContent).toContain(
+      'Este prato tem pedidos e não pode ser removido.',
+    );
+    expect(element.textContent).toContain('Feijoada');
+  });
+
   it('editar_alterarNome_enviaPutComIdDoPrato', async () => {
     flushWeek([feijoada]);
     await settle();

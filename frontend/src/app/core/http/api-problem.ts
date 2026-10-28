@@ -3,6 +3,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 export interface ApiProblem {
   readonly status: number;
   readonly title: string;
+  /** Texto de `detail` do problem+json; vazio quando a API não o envia. */
+  readonly detail: string;
   readonly fieldErrors: Readonly<Record<string, readonly string[]>>;
 }
 
@@ -36,16 +38,17 @@ function readFieldErrors(value: unknown): Readonly<Record<string, readonly strin
  */
 export function toApiProblem(error: unknown): ApiProblem {
   if (!(error instanceof HttpErrorResponse)) {
-    return { status: 0, title: GENERIC_ERROR_TITLE, fieldErrors: {} };
+    return { status: 0, title: GENERIC_ERROR_TITLE, detail: '', fieldErrors: {} };
   }
   if (error.status === 0) {
-    return { status: 0, title: NETWORK_ERROR_TITLE, fieldErrors: {} };
+    return { status: 0, title: NETWORK_ERROR_TITLE, detail: '', fieldErrors: {} };
   }
   const body: unknown = error.error;
   if (!isRecord(body)) {
-    return { status: error.status, title: GENERIC_ERROR_TITLE, fieldErrors: {} };
+    return { status: error.status, title: GENERIC_ERROR_TITLE, detail: '', fieldErrors: {} };
   }
   const title =
     typeof body['title'] === 'string' && body['title'] !== '' ? body['title'] : GENERIC_ERROR_TITLE;
-  return { status: error.status, title, fieldErrors: readFieldErrors(body['errors']) };
+  const detail = typeof body['detail'] === 'string' ? body['detail'] : '';
+  return { status: error.status, title, detail, fieldErrors: readFieldErrors(body['errors']) };
 }

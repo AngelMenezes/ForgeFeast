@@ -16,11 +16,11 @@ Rota: GENESIS > IRONLAW > ANVIL > EMBER > SNIPER. Pré-requisito: F01 aprovada.
 - [ ] T-09 Testes de unidade e de integração com SQL Server (RNF-03); medir RNF-01. (unidade e integração sem Docker executados; `OrderEndpointsTests` escritos, **não executados** por falta de Docker; RNF-01 ainda não medido)
 
 ## EMBER (frontend)
-- [ ] T-10 Serviço de carrinho (estado local, um dia por vez, confirmação ao trocar de dia) (RF-01).
-- [ ] T-11 Tela de carrinho: campo nome, envio/alteração, erros por campo, reabertura do pedido (RF-02, RF-11).
-- [ ] T-12 Modo somente leitura e exibição do corte; tratamento do 422 (RF-14, RF-12).
-- [ ] T-13 Mensagem de 409 na tela de cadastro (RF-10).
-- [ ] T-14 Testes unitários do frontend e acessibilidade (RNF-06).
+- [x] T-10 Serviço de carrinho (estado local, um dia por vez, confirmação ao trocar de dia) (RF-01). (`CartService`, `ConfirmBox`)
+- [x] T-11 Tela de carrinho: campo nome, envio/alteração, erros por campo, reabertura do pedido (RF-02, RF-11). (`/pedido`)
+- [x] T-12 Modo somente leitura e exibição do corte; tratamento do 422 (RF-14, RF-12).
+- [x] T-13 Mensagem de 409 na tela de cadastro (RF-10).
+- [x] T-14 Testes unitários do frontend e acessibilidade (RNF-06). (69 testes aprovados; acessibilidade só por HTML semântico e ARIA mínimo, sem auditoria automatizada nem leitor de tela)
 
 ## SNIPER (E2E)
 - [ ] T-15 E2E: montar, enviar, reabrir e alterar (RNF-03).

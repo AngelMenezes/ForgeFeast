@@ -1,4 +1,8 @@
-<section class="week-board" aria-labelledby="week-board-title" [attr.aria-busy]="state().kind === 'loading'">
+<section
+  class="week-board"
+  aria-labelledby="week-board-title"
+  [attr.aria-busy]="state().kind === 'loading'"
+>
   <h2 id="week-board-title" class="week-board__title">Pratos por dia</h2>
 
   @switch (state().kind) {

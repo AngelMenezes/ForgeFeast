@@ -1,0 +1,52 @@
+<section
+  class="order-dish-list"
+  aria-labelledby="order-dish-list-title"
+  [attr.aria-busy]="state().kind === 'loading'"
+>
+  <h2 id="order-dish-list-title" class="order-dish-list__title">Pratos do dia</h2>
+
+  @switch (state().kind) {
+    @case ('loading') {
+      <p class="order-dish-list__message" role="status">
+        <span class="order-dish-list__spinner" aria-hidden="true"></span>
+        Carregando o cardápio…
+      </p>
+    }
+    @case ('error') {
+      <div role="alert">
+        <p class="order-dish-list__message">{{ errorMessage() }}</p>
+        <button class="order-dish-list__button" type="button" (click)="handleRetry()">
+          Tentar novamente
+        </button>
+      </div>
+    }
+    @case ('loaded') {
+      @if (dishes().length === 0) {
+        <p class="order-dish-list__message">Nenhum prato cadastrado para este dia.</p>
+      } @else {
+        <ul class="order-dish-list__items">
+          @for (dish of dishes(); track dish.id) {
+            <li class="order-dish-list__item">
+              <div class="order-dish-list__text">
+                <p class="order-dish-list__name">{{ dish.name }}</p>
+                @if (dish.description) {
+                  <p class="order-dish-list__description">{{ dish.description }}</p>
+                }
+              </div>
+              @if (!isAddDisabled()) {
+                <button
+                  class="order-dish-list__button"
+                  type="button"
+                  [attr.aria-label]="'Adicionar ' + dish.name + ' ao carrinho'"
+                  (click)="handleAdd(dish)"
+                >
+                  Adicionar
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+    }
+  }
+</section>

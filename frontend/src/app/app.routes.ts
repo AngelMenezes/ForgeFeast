@@ -15,6 +15,11 @@ export const routes: Routes = [
       import('./features/menu/menu-week-page/menu-week-page').then((m) => m.MenuWeekPage),
   },
   {
+    path: 'pedido',
+    title: 'Pedido do almoço | ForgeFeast',
+    loadComponent: () => import('./features/orders/order-page/order-page').then((m) => m.OrderPage),
+  },
+  {
     path: 'cadastro',
     title: 'Cadastro de pratos | ForgeFeast',
     loadComponent: () =>

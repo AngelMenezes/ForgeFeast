@@ -1,0 +1,101 @@
+<form
+  class="cart-panel"
+  novalidate
+  aria-labelledby="cart-panel-title"
+  (submit)="handleSubmit($event)"
+>
+  <h2 id="cart-panel-title" class="cart-panel__title">Seu carrinho</h2>
+
+  @if (formError()) {
+    <p class="cart-panel__alert" role="alert">{{ formError() }}</p>
+  }
+
+  <div class="cart-panel__field">
+    <label class="cart-panel__label" for="order-name">Seu nome</label>
+    <div class="cart-panel__name-row">
+      <input
+        id="order-name"
+        class="cart-panel__control"
+        type="text"
+        autocomplete="name"
+        [value]="name()"
+        [attr.maxlength]="nameMaxLength"
+        [attr.aria-invalid]="nameError() ? 'true' : null"
+        [attr.aria-describedby]="nameError() ? 'order-name-error' : null"
+        (input)="handleNameInput($event)"
+      />
+      <button
+        class="cart-panel__button cart-panel__button--secondary"
+        type="button"
+        [disabled]="isLookingUp()"
+        (click)="handleLookup()"
+      >
+        {{ isLookingUp() ? 'Buscando…' : 'Buscar meu pedido' }}
+      </button>
+    </div>
+    @if (nameError()) {
+      <p id="order-name-error" class="cart-panel__error">{{ nameError() }}</p>
+    }
+    <p class="cart-panel__status" role="status">{{ lookupMessage() }}</p>
+  </div>
+
+  @if (lines().length === 0) {
+    <p class="cart-panel__empty">
+      {{
+        isReadOnly()
+          ? 'Nenhum pedido enviado por este nome neste dia.'
+          : 'Seu carrinho está vazio. Adicione pratos do cardápio.'
+      }}
+    </p>
+  } @else {
+    <ul class="cart-panel__lines" aria-label="Itens do carrinho">
+      @for (line of lines(); track line.dishId) {
+        <li class="cart-panel__line">
+          <p class="cart-panel__line-name">{{ line.dishName }}</p>
+          @if (isReadOnly()) {
+            <p class="cart-panel__quantity">Quantidade: {{ line.quantity }}</p>
+          } @else {
+            <div class="cart-panel__controls" role="group" [attr.aria-label]="line.dishName">
+              <button
+                class="cart-panel__step"
+                type="button"
+                [disabled]="line.quantity <= minQuantity"
+                [attr.aria-label]="'Diminuir quantidade de ' + line.dishName"
+                (click)="handleDecrease(line)"
+              >
+                −
+              </button>
+              <span class="cart-panel__quantity" aria-live="polite">
+                <span class="cart-panel__quantity-label">Quantidade: </span>{{ line.quantity }}
+              </span>
+              <button
+                class="cart-panel__step"
+                type="button"
+                [disabled]="line.quantity >= maxQuantity"
+                [attr.aria-label]="'Aumentar quantidade de ' + line.dishName"
+                (click)="handleIncrease(line)"
+              >
+                +
+              </button>
+              <button
+                class="cart-panel__remove"
+                type="button"
+                [attr.aria-label]="'Remover ' + line.dishName + ' do carrinho'"
+                (click)="handleRemove(line)"
+              >
+                Remover
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+    <p class="cart-panel__total">Total de itens: {{ totalQuantity() }}</p>
+  }
+
+  @if (!isReadOnly()) {
+    <button class="cart-panel__button" type="submit" [disabled]="isSubmitting()">
+      {{ submitLabel() }}
+    </button>
+  }
+</form>

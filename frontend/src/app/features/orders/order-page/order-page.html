@@ -1,0 +1,83 @@
+<h1 class="order-page__title">Pedido do almoço</h1>
+
+<ff-week-navigator
+  [weekStart]="weekStart()"
+  (previous)="handlePreviousWeek()"
+  (next)="handleNextWeek()"
+  (current)="handleCurrentWeek()"
+/>
+
+<div class="order-page__day">
+  <label class="order-page__label" for="order-day">Dia do pedido</label>
+  <select id="order-day" class="order-page__select" (change)="handleDayChange($event)">
+    @for (day of weekDays(); track day) {
+      <option [value]="day" [selected]="day === selectedDate()">{{ labelFor(day) }}</option>
+    }
+  </select>
+</div>
+
+@switch (windowState().kind) {
+  @case ('loading') {
+    <p class="order-page__cutoff" role="status">Carregando o horário de corte…</p>
+  }
+  @case ('error') {
+    <div class="order-page__alert" role="alert">
+      <p class="order-page__alert-text">{{ windowError() }}</p>
+      <button class="order-page__button" type="button" (click)="handleRetryWindow()">
+        Tentar novamente
+      </button>
+    </div>
+  }
+  @case ('loaded') {
+    @if (orderWindow(); as window) {
+      <p class="order-page__cutoff">
+        Horário de corte: <strong>{{ window.cutoffTime }}</strong>
+      </p>
+      @if (!window.isOpen) {
+        <p class="order-page__closed" role="alert">
+          Pedido encerrado. Os pedidos deste dia foram encerrados às {{ window.cutoffTime }}.
+          Informe seu nome e busque o pedido para consultá-lo.
+        </p>
+      }
+    }
+  }
+}
+
+@if (pending(); as current) {
+  <ff-confirm-box
+    [groupLabel]="current.kind === 'switch-day' ? 'Confirmar troca de dia' : 'Confirmar pedido'"
+    [message]="pendingMessage()"
+    [confirmLabel]="pendingConfirmLabel()"
+    [cancelLabel]="pendingCancelLabel()"
+    (confirmed)="handleConfirmPending()"
+    (cancelled)="handleCancelPending()"
+  />
+}
+
+<div class="order-page__feedback" role="status">{{ feedback() }}</div>
+
+<div class="order-page__layout">
+  <ff-order-dish-list
+    [state]="menuState()"
+    [date]="selectedDate()"
+    [isAddDisabled]="isReadOnly()"
+    (retry)="handleRetryMenu()"
+    (addDish)="handleAddDish($event)"
+  />
+  <ff-cart-panel
+    [lines]="lines()"
+    [name]="name()"
+    [nameError]="nameError()"
+    [formError]="formError()"
+    [isReadOnly]="isReadOnly()"
+    [isEditing]="existingOrder() !== null"
+    [isSubmitting]="isSubmitting()"
+    [isLookingUp]="isLookingUp()"
+    [lookupMessage]="lookupMessage()"
+    (nameChange)="handleNameChange($event)"
+    (lookup)="handleLookup()"
+    (quantityChange)="handleQuantityChange($event)"
+    (remove)="handleRemoveLine($event)"
+    (submitted)="handleSubmit()"
+  />
+</div>

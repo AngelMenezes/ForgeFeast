@@ -12,6 +12,8 @@ import { MenuWeekBoard } from '../menu-week-board/menu-week-board';
 import { WeekNavigator } from '../week-navigator/week-navigator';
 
 const HTTP_NOT_FOUND = 404;
+const HTTP_CONFLICT = 409;
+const DISH_HAS_ORDERS_MESSAGE = 'Este prato tem pedidos e não pode ser removido.';
 
 @Component({
   selector: 'ff-dish-admin-page',
@@ -121,15 +123,18 @@ export class DishAdminPage implements OnInit {
         error: (error: unknown) => {
           const problem = toApiProblem(error);
           this.pendingRemoval.set(null);
-          this.removalError.set(
-            problem.status === HTTP_NOT_FOUND
-              ? 'Esse prato já tinha sido removido. A lista foi atualizada.'
-              : problem.title,
-          );
+          this.removalError.set(this.describeRemovalFailure(problem));
           this.cancelEditIfRemoved(dish);
           this.loadWeek(false);
         },
       });
+  }
+
+  private describeRemovalFailure(problem: ApiProblem): string {
+    if (problem.status === HTTP_NOT_FOUND) {
+      return 'Esse prato já tinha sido removido. A lista foi atualizada.';
+    }
+    return problem.status === HTTP_CONFLICT ? DISH_HAS_ORDERS_MESSAGE : problem.title;
   }
 
   private cancelEditIfRemoved(dish: Dish): void {

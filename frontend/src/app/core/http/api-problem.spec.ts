@@ -28,6 +28,18 @@ describe('toApiProblem', () => {
     expect(problem.fieldErrors).toEqual({});
   });
 
+  it('toApiProblem_422ComDetail_devolveODetalhe', () => {
+    const error = new HttpErrorResponse({
+      status: 422,
+      error: { title: 'Pedido encerrado.', detail: 'Os pedidos de 27/10/2026 foram encerrados.' },
+    });
+
+    const problem = toApiProblem(error);
+
+    expect(problem.title).toBe('Pedido encerrado.');
+    expect(problem.detail).toBe('Os pedidos de 27/10/2026 foram encerrados.');
+  });
+
   it('toApiProblem_semConexao_devolveMensagemDeRede', () => {
     const problem = toApiProblem(new HttpErrorResponse({ status: 0 }));
 
