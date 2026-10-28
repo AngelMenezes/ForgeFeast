@@ -25,6 +25,21 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
+        // Corpo malformado é erro do cliente (400), não falha do servidor (ADR-013).
+        if (exception is BadHttpRequestException badRequest)
+        {
+            httpContext.Response.StatusCode = badRequest.StatusCode;
+            return await _problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = httpContext,
+                ProblemDetails = new ProblemDetails
+                {
+                    Status = badRequest.StatusCode,
+                    Title = "A requisição é inválida.",
+                },
+            });
+        }
+
         _logger.LogError(exception, "Exceção não tratada em {Method} {Path}", httpContext.Request.Method, httpContext.Request.Path);
 
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;

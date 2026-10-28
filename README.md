@@ -6,6 +6,8 @@ Stack: Angular (frontend), ASP.NET Core / .NET 9 (API), SQL Server 2022 em Docke
 
 > **Estado do F00:** backend (API, banco, testes, lint, scripts) e esqueleto do `frontend/` escritos. Em 2026-10-27 (IRONLAW) foram verificados `dotnet build`, `dotnet format --verify-no-changes` e os testes sem Docker (9 aprovados); os testes `RequiresDocker` e a subida do banco **não** foram executados porque o Docker não estava em execução. O frontend (EMBER, 2026-10-27) foi revisado por leitura, mas **`npm install`, lint, testes e build não foram executados** (o shell foi negado na sessão) e não há `package-lock.json`: rode os passos de [Frontend](#frontend-angular) para validar e versione o `package-lock.json` gerado. O Playwright (`frontend/e2e`, SNIPER, 2026-10-27) foi configurado com 2 testes `@smoke`, mas **também não foi executado** (sem shell na sessão); veja [Testes E2E](#testes-e2e-playwright).
 
+> **Estado do F01 (API de pratos, ANVIL, 2026-10-27):** `Features/Menu` implementada (`GET /api/menu`, `POST/GET/PUT/DELETE /api/dishes`) com a migração `0002_create_dish.sql`. Verificados `dotnet build`, `dotnet format --verify-no-changes` e 38 testes de unidade (mais 2 de integração sem Docker). Os testes de integração de `MenuEndpointsTests` (`RequiresDocker`) **não foram executados** (Docker parado): rode `dotnet test ForgeFeast.sln` com o Docker ativo. A conferência de `/openapi/v1.json` contra `docs/api/openapi.yaml` também está pendente. Para experimentar: suba o banco e a API (seções abaixo) e abra `http://localhost:<porta>/swagger` em Development.
+
 ## Pré-requisitos
 
 Versões usadas e verificadas na máquina de desenvolvimento:

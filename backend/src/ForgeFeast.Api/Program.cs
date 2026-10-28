@@ -1,4 +1,5 @@
 using ForgeFeast.Api.Features.Health;
+using ForgeFeast.Api.Features.Menu;
 using ForgeFeast.Api.Infrastructure.Configuration;
 using ForgeFeast.Api.Infrastructure.Database;
 using ForgeFeast.Api.Infrastructure.Errors;
@@ -33,6 +34,7 @@ builder.Services
 builder.Services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddHealthFeature();
+builder.Services.AddMenuFeature();
 
 builder.Services.AddProblemDetails(options =>
     options.CustomizeProblemDetails = context =>
@@ -56,7 +58,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "ForgeFeast API v1"));
 }
 
-app.MapGroup("/api").MapHealthEndpoints();
+var api = app.MapGroup("/api");
+api.MapHealthEndpoints();
+api.MapMenuEndpoints();
 
 app.Run();
 
