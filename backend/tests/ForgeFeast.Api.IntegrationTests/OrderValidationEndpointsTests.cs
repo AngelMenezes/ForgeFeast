@@ -168,6 +168,36 @@ public sealed class OrderValidationEndpointsTests
         return body.RootElement.GetProperty("isOpen").GetBoolean();
     }
 
+    [Theory]
+    [InlineData("25:00")]
+    [InlineData("meio-dia")]
+    public void CreateClient_InvalidCutoffTime_FailsToStartMentioningTheSetting(string cutoffTime)
+    {
+        using var factory = new ApiFactory(
+            UnreachableConnectionString,
+            applyMigrations: false,
+            new FakeTimeProvider(TenAm),
+            cutoffTime);
+
+        var failure = Record.Exception(() => factory.CreateClient());
+
+        Assert.NotNull(failure);
+        Assert.Contains("Ordering:CutoffTime", Flatten(failure));
+    }
+
+    private static string Flatten(Exception exception)
+    {
+        var messages = new List<string>();
+        Exception? current = exception;
+        while (current is not null)
+        {
+            messages.Add(current.Message);
+            current = current.InnerException;
+        }
+
+        return string.Join(" | ", messages);
+    }
+
     private static async Task AssertValidationErrorAsync(HttpResponseMessage response, string field, string message)
     {
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

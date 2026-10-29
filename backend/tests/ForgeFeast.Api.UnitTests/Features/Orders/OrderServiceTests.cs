@@ -232,7 +232,7 @@ public sealed class OrderServiceTests
 
         public Task<DishResponse?> GetDishAsync(int id, CancellationToken cancellationToken) => throw new NotSupportedException();
 
-        public Task<DishResponse?> UpdateDishAsync(int id, DishInput dish, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<UpdateDishResult> UpdateDishAsync(int id, DishInput dish, CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public Task<DeleteDishResult> DeleteDishAsync(int id, CancellationToken cancellationToken) => throw new NotSupportedException();
     }

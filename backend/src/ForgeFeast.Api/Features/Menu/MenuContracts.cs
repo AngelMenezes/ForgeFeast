@@ -21,5 +21,15 @@ public enum DeleteDishResult
     HasOrders,
 }
 
+public enum UpdateDishStatus
+{
+    Updated,
+    NotFound,
+    HasOrders,
+}
+
+/// <summary>Resultado da edição de prato (ADR-018); <see cref="Dish"/> só vem preenchido em <see cref="UpdateDishStatus.Updated"/>.</summary>
+public sealed record UpdateDishResult(UpdateDishStatus Status, DishResponse? Dish = null);
+
 /// <summary>Prato já validado e normalizado (trim aplicado, descrição vazia como null).</summary>
 public sealed record DishInput(DateOnly Date, string Name, string? Description);

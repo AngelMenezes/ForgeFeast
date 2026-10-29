@@ -93,8 +93,17 @@ public static class MenuEndpoints
             return ValidationProblem(validation.Errors);
         }
 
-        var dish = await menuService.UpdateDishAsync(id, validation.Value, cancellationToken);
-        return dish is null ? TypedResults.NotFound() : TypedResults.Ok(dish);
+        var result = await menuService.UpdateDishAsync(id, validation.Value, cancellationToken);
+        return result.Status switch
+        {
+            UpdateDishStatus.Updated when result.Dish is not null => TypedResults.Ok(result.Dish),
+            UpdateDishStatus.HasOrders => TypedResults.Problem(
+                title: "Prato com pedidos.",
+                detail: "Este prato tem pedidos e não pode mudar de data.",
+                statusCode: StatusCodes.Status409Conflict,
+                type: "https://tools.ietf.org/html/rfc9110#section-15.5.10"),
+            _ => TypedResults.NotFound(),
+        };
     }
 
     private static async Task<IResult> DeleteDishAsync(

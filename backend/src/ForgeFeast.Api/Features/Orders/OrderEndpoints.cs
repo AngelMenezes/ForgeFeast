@@ -1,5 +1,6 @@
 using ForgeFeast.Api.Features.Menu;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace ForgeFeast.Api.Features.Orders;
@@ -19,7 +20,7 @@ public static class OrderEndpoints
                 "Ordering:TimeZone não foi encontrado no sistema (defina Ordering__TimeZone).")
             .ValidateOnStart();
 
-        services.AddSingleton(TimeProvider.System);
+        services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<OrderCutoffPolicy>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IOrderService, OrderService>();

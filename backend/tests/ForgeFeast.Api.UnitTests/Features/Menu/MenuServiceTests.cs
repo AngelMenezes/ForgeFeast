@@ -85,6 +85,56 @@ public sealed class MenuServiceTests
     }
 
     [Fact]
+    public async Task UpdateDishAsync_UnknownDish_ReturnsNotFoundWithoutUpdating()
+    {
+        var repository = new FakeDishRepository();
+        var service = new MenuService(repository, new FakeOrderLookup(hasOrders: false));
+
+        var result = await service.UpdateDishAsync(99, new DishInput(Monday, "Feijoada", null), CancellationToken.None);
+
+        Assert.Equal(UpdateDishStatus.NotFound, result.Status);
+        Assert.Empty(repository.Updates);
+    }
+
+    [Fact]
+    public async Task UpdateDishAsync_DateChangeOnDishWithOrders_ReturnsHasOrdersWithoutUpdating()
+    {
+        var repository = new FakeDishRepository(new DishResponse(1, Monday, "Feijoada", null));
+        var service = new MenuService(repository, new FakeOrderLookup(hasOrders: true));
+
+        var result = await service.UpdateDishAsync(1, new DishInput(Monday.AddDays(1), "Feijoada", null), CancellationToken.None);
+
+        Assert.Equal(UpdateDishStatus.HasOrders, result.Status);
+        Assert.Null(result.Dish);
+        Assert.Empty(repository.Updates);
+    }
+
+    [Fact]
+    public async Task UpdateDishAsync_SameDateOnDishWithOrders_UpdatesNameWithoutCheckingOrders()
+    {
+        var repository = new FakeDishRepository(new DishResponse(1, Monday, "Feijoda", null));
+        var service = new MenuService(repository, new FakeOrderLookup(hasOrders: true));
+
+        var result = await service.UpdateDishAsync(1, new DishInput(Monday, "Feijoada", "Com couve"), CancellationToken.None);
+
+        Assert.Equal(UpdateDishStatus.Updated, result.Status);
+        Assert.Equal("Feijoada", result.Dish?.Name);
+        Assert.Single(repository.Updates);
+    }
+
+    [Fact]
+    public async Task UpdateDishAsync_DateChangeOnDishWithoutOrders_Updates()
+    {
+        var repository = new FakeDishRepository(new DishResponse(1, Monday, "Feijoada", null));
+        var service = new MenuService(repository, new FakeOrderLookup(hasOrders: false));
+
+        var result = await service.UpdateDishAsync(1, new DishInput(Monday.AddDays(1), "Feijoada", null), CancellationToken.None);
+
+        Assert.Equal(UpdateDishStatus.Updated, result.Status);
+        Assert.Equal(Monday.AddDays(1), result.Dish?.Date);
+    }
+
+    [Fact]
     public async Task GetDishesAsync_NoIds_ReturnsEmptyWithoutQuerying()
     {
         var repository = new FakeDishRepository(new DishResponse(1, Monday, "Feijoada", null));
@@ -160,9 +210,12 @@ public sealed class MenuServiceTests
             return Task.FromResult(_dishes.FirstOrDefault(dish => dish.Id == id));
         }
 
+        public List<(int Id, DishInput Dish)> Updates { get; } = [];
+
         public Task<DishResponse?> UpdateAsync(int id, DishInput dish, CancellationToken cancellationToken)
         {
-            throw new NotSupportedException();
+            Updates.Add((id, dish));
+            return Task.FromResult<DishResponse?>(new DishResponse(id, dish.Date, dish.Name, dish.Description));
         }
 
         public Task<DeleteDishResult> DeleteAsync(int id, CancellationToken cancellationToken)

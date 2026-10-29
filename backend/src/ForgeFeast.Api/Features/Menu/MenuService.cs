@@ -37,9 +37,23 @@ public sealed class MenuService : IMenuService
         return _repository.GetByIdAsync(id, cancellationToken);
     }
 
-    public Task<DishResponse?> UpdateDishAsync(int id, DishInput dish, CancellationToken cancellationToken)
+    public async Task<UpdateDishResult> UpdateDishAsync(int id, DishInput dish, CancellationToken cancellationToken)
     {
-        return _repository.UpdateAsync(id, dish, cancellationToken);
+        var current = await _repository.GetByIdAsync(id, cancellationToken);
+        if (current is null)
+        {
+            return new UpdateDishResult(UpdateDishStatus.NotFound);
+        }
+
+        if (current.Date != dish.Date && await _orderLookup.HasOrdersAsync(id, cancellationToken))
+        {
+            return new UpdateDishResult(UpdateDishStatus.HasOrders);
+        }
+
+        var updated = await _repository.UpdateAsync(id, dish, cancellationToken);
+        return updated is null
+            ? new UpdateDishResult(UpdateDishStatus.NotFound)
+            : new UpdateDishResult(UpdateDishStatus.Updated, updated);
     }
 
     public async Task<IReadOnlyList<DishResponse>> GetDishesAsync(

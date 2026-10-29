@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Time.Testing;
 using Testcontainers.MsSql;
 using Xunit.Abstractions;
@@ -25,6 +26,8 @@ public sealed class OrdersApiFixture : IAsyncLifetime
     public FakeTimeProvider Clock { get; } = new(OrderEndpointsTests.TenAm);
 
     public HttpClient Client => _client ?? throw new InvalidOperationException("Fixture não inicializada.");
+
+    public string ConnectionString => _sqlServer.GetConnectionString();
 
     public async Task InitializeAsync()
     {
@@ -272,6 +275,131 @@ public sealed class OrderEndpointsTests : IClassFixture<OrdersApiFixture>
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("Ana", "Ana")]
+    [InlineData("Ana Dois", " ana dois ")]
+    [InlineData("Ana Tres", "ANA TRES")]
+    public async Task PostOrder_NameVariantsOfSameName_Return409(string original, string duplicateName)
+    {
+        const string date = "2026-11-03";
+        var dish = await PostDishAsync(date, $"Prato variante {original}");
+        using var created = await PostOrderAsync(original, date, (dish, 1));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        using var duplicate = await PostOrderAsync(duplicateName, date, (dish, 2));
+
+        Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
+        Assert.Equal([(dish, $"Prato variante {original}", 1)], ReadItems(await GetOrderAsync(original, date)));
+    }
+
+    [Fact]
+    public async Task GetOrder_NameInDifferentCaseAndWithSpaces_ReturnsOrder()
+    {
+        var dish = await PostDishAsync(Today, "Prato caixa");
+        using var created = await PostOrderAsync("Marina", Today, (dish, 1));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        var order = await GetOrderAsync("  MARINA ", Today);
+
+        Assert.Equal("Marina", order.GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task GetOrder_Saturday_Returns404()
+    {
+        using var response = await Client.GetAsync("/api/orders?name=Ana&date=2026-10-31");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PostOrder_FridayAfterCutoff_NextMondayIs201AndSameFridayIs422()
+    {
+        const string friday = "2026-10-30";
+        const string nextMonday = "2026-11-02";
+        var fridayDish = await PostDishAsync(friday, "Prato sexta tarde");
+        var mondayDish = await PostDishAsync(nextMonday, "Prato segunda seguinte");
+        _fixture.Clock.SetUtcNow(new DateTimeOffset(2026, 10, 30, 16, 0, 0, TimeSpan.Zero));
+
+        using var monday = await PostOrderAsync("Sexta a tarde", nextMonday, (mondayDish, 1));
+        using var sameDay = await PostOrderAsync("Sexta a tarde", friday, (fridayDish, 1));
+
+        Assert.Equal(HttpStatusCode.Created, monday.StatusCode);
+        await AssertClosedAsync(sameDay, "Os pedidos de 30/10/2026 foram encerrados às 12:00.");
+    }
+
+    [Fact]
+    public async Task PostOrder_DatabaseFailsWhileWritingItems_Returns500AndLeavesNoOrder()
+    {
+        const string triggerName = "TR_OrderItem_ForcedFailure_Test";
+        const string dishName = "Prato gatilho de falha";
+        var failing = await PostDishAsync(Tomorrow, dishName);
+        var healthy = await PostDishAsync(Tomorrow, "Prato saudável do gatilho");
+        await using var connection = new SqlConnection(_fixture.ConnectionString);
+        await connection.OpenAsync();
+        await ExecuteAsync(
+            connection,
+            $"""
+            CREATE TRIGGER dbo.{triggerName} ON dbo.OrderItem AFTER INSERT AS
+            BEGIN
+                IF EXISTS (SELECT 1 FROM inserted AS i WHERE i.DishId = {failing})
+                    THROW 50001, 'Falha forçada pelo teste.', 1;
+            END
+            """);
+        try
+        {
+            using var response = await PostOrderAsync("Atomicidade", Tomorrow, (healthy, 1), (failing, 1));
+
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            Assert.Equal(0, await CountOrdersAsync(connection, "Atomicidade"));
+        }
+        finally
+        {
+            await ExecuteAsync(connection, $"DROP TRIGGER dbo.{triggerName}");
+        }
+    }
+
+    [Fact]
+    public async Task PutDish_ChangingDateOfDishInOrder_Returns409AndKeepsDate()
+    {
+        var dish = await PostDishAsync(Today, "Prato fixo no dia");
+        using var created = await PostOrderAsync("Jussara", Today, (dish, 1));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        using var response = await Client.PutAsJsonAsync($"/api/dishes/{dish}", new { date = Tomorrow, name = "Prato fixo no dia" });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        var problem = await ReadJsonAsync(response);
+        Assert.Equal("Prato com pedidos.", problem.GetProperty("title").GetString());
+        Assert.Equal("Este prato tem pedidos e não pode mudar de data.", problem.GetProperty("detail").GetString());
+        using var stored = await Client.GetAsync($"/api/dishes/{dish}");
+        Assert.Equal(Today, (await ReadJsonAsync(stored)).GetProperty("date").GetString());
+    }
+
+    [Fact]
+    public async Task PutDish_ChangingOnlyNameOfDishInOrder_Returns200()
+    {
+        var dish = await PostDishAsync(Today, "Prato com erro de digitaçao");
+        using var created = await PostOrderAsync("Karina", Today, (dish, 1));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        using var response = await Client.PutAsJsonAsync($"/api/dishes/{dish}", new { date = Today, name = "Prato com erro de digitação" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var order = await GetOrderAsync("Karina", Today);
+        Assert.Equal([(dish, "Prato com erro de digitação", 1)], ReadItems(order));
+    }
+
+    [Fact]
+    public async Task PutDish_ChangingDateOfDishWithoutOrders_Returns200()
+    {
+        var dish = await PostDishAsync(Today, "Prato sem pedido movel");
+
+        using var response = await Client.PutAsJsonAsync($"/api/dishes/{dish}", new { date = Tomorrow, name = "Prato sem pedido movel" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     [Fact]
     public async Task GetOrder_UnknownOrder_Returns404()
     {
@@ -455,6 +583,19 @@ public sealed class OrderEndpointsTests : IClassFixture<OrdersApiFixture>
         Assert.Equal(HttpStatusCode.OK, put.StatusCode);
         Assert.InRange(postMilliseconds, 0, 500);
         Assert.InRange(putMilliseconds, 0, 500);
+    }
+
+    private static async Task ExecuteAsync(SqlConnection connection, string sql)
+    {
+        await using var command = new SqlCommand(sql, connection);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private static async Task<int> CountOrdersAsync(SqlConnection connection, string name)
+    {
+        await using var command = new SqlCommand("SELECT COUNT(*) FROM dbo.[Order] WHERE CustomerName = @name", connection);
+        command.Parameters.AddWithValue("@name", name);
+        return (int)(await command.ExecuteScalarAsync() ?? 0);
     }
 
     private async Task<int> PostDishAsync(string date, string name)

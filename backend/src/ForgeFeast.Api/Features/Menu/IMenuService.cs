@@ -9,7 +9,8 @@ public interface IMenuService
 
     Task<DishResponse?> GetDishAsync(int id, CancellationToken cancellationToken);
 
-    Task<DishResponse?> UpdateDishAsync(int id, DishInput dish, CancellationToken cancellationToken);
+    /// <summary>Substitui o prato; recusa a mudança de data quando o prato está em algum pedido (ADR-018).</summary>
+    Task<UpdateDishResult> UpdateDishAsync(int id, DishInput dish, CancellationToken cancellationToken);
 
     /// <summary>Pratos encontrados entre os ids informados (ids inexistentes são omitidos).</summary>
     Task<IReadOnlyList<DishResponse>> GetDishesAsync(IReadOnlyCollection<int> ids, CancellationToken cancellationToken);

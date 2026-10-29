@@ -19,9 +19,9 @@ Rota: GENESIS > IRONLAW > ANVIL > EMBER > SNIPER. Pré-requisito: F01 aprovada.
 - [x] T-06 Validador de pedido, regra de corte e serviço com relógio injetado (RF-02 a RF-08, RF-12, RF-13, RNF-04).
 - [x] T-07 Endpoints POST/GET/PUT (RF-03 a RF-05) e tratamento de 409 por violação de índice único (RF-06).
 - [x] T-08 DELETE de prato com 409 quando há `OrderItem` (RF-10).
-- [ ] T-20 ADR-018: `MenuService.UpdateDishAsync` devolve `UpdateDishResult` (`Updated`/`NotFound`/`HasOrders`) e o `PUT /api/dishes/{id}` responde 409 quando a data muda e o prato tem pedidos. Incluir unidade em `MenuServiceTests` e integração em `OrderEndpointsTests`.
-- [ ] T-21 Trocar `services.AddSingleton(TimeProvider.System)` por `services.TryAddSingleton(TimeProvider.System)` em `AddOrdersFeature()` (ADR-015).
-- [ ] T-22 Testes de integração que faltam para os critérios do GENESIS:
+- [x] T-20 ADR-018: `MenuService.UpdateDishAsync` devolve `UpdateDishResult` (`Updated`/`NotFound`/`HasOrders`) e o `PUT /api/dishes/{id}` responde 409 quando a data muda e o prato tem pedidos. Incluir unidade em `MenuServiceTests` e integração em `OrderEndpointsTests`. (escrito em 2026-10-28; **não compilado nem executado**, o Bash foi negado nesta sessão)
+- [x] T-21 Trocar `services.AddSingleton(TimeProvider.System)` por `services.TryAddSingleton(TimeProvider.System)` em `AddOrdersFeature()` (ADR-015). (**não compilado**)
+- [x] T-22 (escrito, **não compilado nem executado**; o teste de RNF-05 e os de pedido precisam de Docker) Testes de integração que faltam para os critérios do GENESIS:
   - RF-06: "Ana", " ana " e "ANA" na mesma data dão 409.
   - RF-04: GET sem diferenciar maiúsculas e minúsculas.
   - RF-04: GET em sábado responde 404.
