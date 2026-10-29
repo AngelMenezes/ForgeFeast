@@ -143,6 +143,19 @@ Em falha, o trace e o screenshot ficam em `frontend/test-results/`. O cenário d
 
 > Estado: os specs da F01 foram escritos por leitura do código, **sem execução** (a etapa não teve terminal). Rode `npm run e2e` para validá-los.
 
+**F02 (carrinho e pedido individual).** O spec `order.spec.ts` cobre montar, enviar, reabrir e alterar o pedido (`@smoke`), carrinho sem chamar a API, nome obrigatório, troca de dia com confirmação, horário de corte, pedido encerrado em somente leitura e o 409 ao remover prato com pedido. Usa a **API real e o banco com a migração `0003` aplicada**.
+
+```bash
+cd frontend
+npx playwright test order.spec.ts   # só os testes de pedido
+npm run e2e:smoke                   # inclui o fluxo montar/enviar/reabrir/alterar
+```
+
+- Os testes de pedido usam semanas próprias, a partir de 2032 (100 semanas depois das da F01), e nomes únicos por execução. A API não apaga pedidos, e prato com pedido não pode ser removido (409). Por isso **sobram pratos e pedidos de 2032 no banco** depois da execução; limpe com o reset da demo (F04) ou recriando o banco.
+- O "pedido encerrado" é simulado só na tela (`page.route` em `GET /api/orders/window`). O 422 real da API e o relógio do servidor são cobertos pelos testes de integração do backend, não por este E2E.
+
+> Estado: o spec da F02 foi escrito por leitura do código, **sem execução** (a etapa não teve terminal). Rode os comandos acima para validá-lo.
+
 O endereço da API fica em `src/environments/environment*.ts` (`apiBaseUrl: '/api'`, caminho relativo resolvido pelo proxy). O frontend não lê o `.env`.
 
 ## Build, lint e testes (backend)

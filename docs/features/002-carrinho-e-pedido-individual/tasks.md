@@ -39,8 +39,8 @@ Rota: GENESIS > IRONLAW > ANVIL > EMBER > SNIPER. Pré-requisito: F01 aprovada.
 - [x] T-14 Testes unitários do frontend e acessibilidade (RNF-06). (69 testes aprovados; acessibilidade só por HTML semântico e ARIA mínimo, sem auditoria automatizada nem leitor de tela)
 
 ## SNIPER (E2E)
-- [ ] T-15 E2E: montar, enviar, reabrir e alterar (RNF-03).
-- [ ] T-16 E2E: troca de dia com confirmação, pedido encerrado (`Ordering__CutoffTime` ou `page.route`, ADR-015), 409 ao remover prato com pedido.
+- [ ] T-15 E2E: montar, enviar, reabrir e alterar (RNF-03). Escrito em `frontend/e2e/order.spec.ts`, **não executado**.
+- [ ] T-16 E2E: troca de dia com confirmação, pedido encerrado (`Ordering__CutoffTime` ou `page.route`, ADR-015), 409 ao remover prato com pedido. Escrito com `page.route`, **não executado**.
 - [ ] T-17 Executar e relatar somente o que foi de fato rodado; atualizar README com os passos da demo.
 
 ## Aprovação
