@@ -212,6 +212,27 @@ describe('DishAdminPage', () => {
     expect(element.querySelector('.dish-form__title')?.textContent).toContain('Novo prato');
   });
 
+  it('editar_api409AoMudarData_mostraMensagemDePratoComPedidos', async () => {
+    flushWeek([feijoada]);
+    await settle();
+
+    click('[aria-label="Editar Feijoada"]');
+    await settle();
+    submit();
+    httpMock
+      .expectOne('/api/dishes/1')
+      .flush(
+        { title: 'Prato com pedidos.', detail: 'Este prato tem pedidos e não pode mudar de data.' },
+        { status: 409, statusText: 'Conflict' },
+      );
+    await settle();
+
+    expect(element.querySelector('.dish-form__alert')?.textContent).toContain(
+      'Este prato tem pedidos e não pode mudar de data.',
+    );
+    expect(element.querySelector('.dish-form__title')?.textContent).toContain('Editar prato');
+  });
+
   it('carregar_apiForaDoAr_mostraErroComTentarNovamente', async () => {
     httpMock
       .expectOne((req) => req.url === '/api/menu')

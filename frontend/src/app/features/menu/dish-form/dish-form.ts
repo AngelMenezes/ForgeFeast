@@ -30,7 +30,9 @@ import {
 
 type DishFieldName = 'date' | 'name' | 'description';
 
-const FIELD_NAMES: readonly DishFieldName[] = ['date', 'name', 'description'];
+const HTTP_CONFLICT = 409;
+
+const FIELD_NAMES:readonly DishFieldName[] = ['date', 'name', 'description'];
 
 const REQUIRED_MESSAGES: Readonly<Record<DishFieldName, string>> = {
   date: 'Escolha um dia útil (segunda a sexta).',
@@ -89,7 +91,11 @@ export class DishForm {
     if (unmapped.length > 0) {
       return unmapped;
     }
-    return entries.length > 0 ? [] : [current.title];
+    if (entries.length > 0) {
+      return [];
+    }
+    const hasConflictDetail = current.status === HTTP_CONFLICT && current.detail !== '';
+    return [hasConflictDetail ? current.detail : current.title];
   });
 
   constructor() {

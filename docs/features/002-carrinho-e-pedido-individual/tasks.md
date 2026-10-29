@@ -35,7 +35,7 @@ Rota: GENESIS > IRONLAW > ANVIL > EMBER > SNIPER. Pré-requisito: F01 aprovada.
 - [x] T-11 Tela de carrinho: campo nome, envio/alteração, erros por campo, reabertura do pedido (RF-02, RF-11). (`/pedido`)
 - [x] T-12 Modo somente leitura e exibição do corte; tratamento do 422 (RF-14, RF-12).
 - [x] T-13 Mensagem de 409 na tela de cadastro (RF-10).
-- [ ] T-23 Tela de cadastro: na edição de prato, exibir o `detail` do 409 de mudança de data (ADR-018), como já é feito no DELETE.
+- [x] T-23 Tela de cadastro: na edição de prato, exibir o `detail` do 409 de mudança de data (ADR-018), como já é feito no DELETE. (escrito e com teste; não executado: `ng test` não rodou nesta sessão)
 - [x] T-14 Testes unitários do frontend e acessibilidade (RNF-06). (69 testes aprovados; acessibilidade só por HTML semântico e ARIA mínimo, sem auditoria automatizada nem leitor de tela)
 
 ## SNIPER (E2E)
