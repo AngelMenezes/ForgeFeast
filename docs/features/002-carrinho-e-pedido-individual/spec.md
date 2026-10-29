@@ -70,4 +70,18 @@ Pagamento, preços e divisão de conta; login; notificações; pedidos em sábad
 Ver "Glossário e regras gerais". Além disso: pedido sem itens não é enviado; corte vale para todos os dias úteis; sem tela para alterar o corte; PUT não cria pedido (404 se não existe); pedido não pode ser excluído nesta feature.
 
 ## Perguntas abertas
-Registradas em [acceptance-criteria.md](acceptance-criteria.md#perguntas-abertas-para-a-pessoa-responsável) e resumidas na entrega (P-01 a P-07).
+Registradas em [acceptance-criteria.md](acceptance-criteria.md#perguntas-abertas-para-a-pessoa-responsável) e resumidas na entrega (P-01 a P-11).
+
+## Revisão contra o escopo do painel (GENESIS, 2026-10-28)
+Os RF-01 a RF-14 e RNF-01 a RNF-04 do painel foram conferidos item a item contra esta spec e contra `acceptance-criteria.md`. Todos estão cobertos, sem truncamento, incluindo corte das 12:00 (RF-12/13), recusa de sábado e domingo (RF-07) e 409 ao remover prato com pedidos (RF-10). Divergências e acréscimos, para decisão da pessoa responsável:
+
+| # | Painel | Esta spec | Tratamento |
+|---|---|---|---|
+| D-01 | Corte usa "o fuso horário do servidor" | Fuso fixo `America/Sao_Paulo`, configurável em `Ordering:TimeZone` (ADR-015) | Divergência deliberada: servidor em UTC/CI anteciparia o corte para 09:00 locais (R-01). Precisa de confirmação (P-10). |
+| D-02 | Itens com `pratoId` | Contrato usa `dishId` (inglês, igual à F01 e ao OpenAPI) | Nome do campo segue o padrão do repositório. |
+| D-03 | Quantidade 1–10 "a confirmar" | Mantido, mais nome ≤ 60 caracteres, ≤ 20 itens distintos e sem prato repetido | Limites acrescentados pelo PO; pendentes em P-02. |
+| D-04 | Silencia sobre PUT de pedido inexistente e sobre excluir pedido | PUT → 404; sem exclusão | Premissas em P-03. |
+| D-05 | Tela exibe o corte | O valor vem da API (`GET /api/orders/window`), não do frontend | Evita divergência de configuração (P-06, ADR-014/015). |
+| D-06 | Demo | Sem relógio falso em produção; a demo muda `Ordering__CutoffTime` (ex.: `00:00` encerra, `23:59` abre) | Resolve P-07 do lado da arquitetura; README precisa ensinar. |
+
+**Observação de processo:** commits da F02 (ANVIL, EMBER) entraram antes do registro de aprovação da F01 em 2026-10-28. Esse trabalho é tratado como **não verificado** até revisão em PR e testes passando. Hoje: testes de integração do `OrderEndpointsTests` não foram executados (sem Docker), RNF-01 não foi medido e o E2E (SNIPER) ainda não existe.

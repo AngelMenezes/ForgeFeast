@@ -122,5 +122,13 @@ Cada item é verificável. "Relógio simulado" = relógio injetado (RNF-04). Dat
 | P-04 | Nomes com grafia diferente ("João" × "Joao") são pessoas distintas? | Sim; só maiúsculas/minúsculas e espaços nas pontas são ignorados. Acentos contam (confirmar com o collation do banco). |
 | P-05 | Ao reabrir um dia com pedido existente e o carrinho local já tem itens, qual vence? | O pedido do servidor substitui o carrinho local, após confirmação se o carrinho tiver itens. |
 | P-06 | O horário de corte aparecer na tela deve vir da API? | Sim; precisa de um campo no contrato (ex.: em `/api/menu` ou endpoint de configuração) — decisão de IRONLAW. |
-| P-07 | Como a demo mostra o "depois do corte" sem esperar 12:00? | Relógio/corte configuráveis por ambiente (ex.: variável de ambiente), documentado no README; relaciona-se ao F04. |
+| P-07 | Como a demo mostra o "depois do corte" sem esperar 12:00? | Encaminhada em ADR-015: sem relógio falso em produção; a demo sobe a API com `Ordering__CutoffTime` (`00:00` encerra, `23:59` abre). README deve documentar; relaciona-se ao F04. |
 | P-08 | Prato que existe só em pedido de dia passado pode ser removido? | Não: qualquer pedido, de qualquer data, bloqueia a remoção (RF-10). |
+| P-09 | Até quantas semanas à frente se pode pedir? O painel diz "datas futuras da semana". | Qualquer dia útil futuro que tenha pratos cadastrados; sem limite além disso. Se a regra for "só a semana corrente", o critério de RF-13 (sexta → segunda seguinte) muda. |
+| P-10 | Fuso do corte: o painel diz "fuso do servidor"; a spec fixa `America/Sao_Paulo` (configurável). Qual vale? | `America/Sao_Paulo`, para o corte não variar com o servidor/CI (UTC). Se a pessoa quiser mesmo o fuso do servidor, basta configurar `Ordering:TimeZone`, mas os critérios de UTC de RF-12 deixam de valer. |
+| P-11 | O nome vai em query string no GET/PUT (ADR-014). Aceita aparecer em logs de acesso? | Sim; é a única identificação e a demo é local (R-04). |
+
+## Resultado da revisão de 2026-10-28
+- Cobertura: cada RF/RNF do painel tem ao menos um critério verificável acima; nenhum critério do painel ficou de fora.
+- Critérios que ainda dependem de execução (nenhum está marcado como concluído): integração com SQL Server real (RF-03 a RF-13, RNF-05), RNF-01 (tempo), E2E (RNF-03) e acessibilidade (RNF-06, só verificada por leitura).
+- Ajuste pedido a SNIPER: o cenário de "pedido encerrado" deve usar `Ordering__CutoffTime` ou `page.route` (ADR-015), não um relógio falso no servidor.

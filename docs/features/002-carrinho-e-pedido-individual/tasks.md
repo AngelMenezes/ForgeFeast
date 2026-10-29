@@ -24,7 +24,7 @@ Rota: GENESIS > IRONLAW > ANVIL > EMBER > SNIPER. Pré-requisito: F01 aprovada.
 
 ## SNIPER (E2E)
 - [ ] T-15 E2E: montar, enviar, reabrir e alterar (RNF-03).
-- [ ] T-16 E2E: troca de dia com confirmação, pedido encerrado (relógio configurado), 409 ao remover prato com pedido.
+- [ ] T-16 E2E: troca de dia com confirmação, pedido encerrado (`Ordering__CutoffTime` ou `page.route`, ADR-015), 409 ao remover prato com pedido.
 - [ ] T-17 Executar e relatar somente o que foi de fato rodado; atualizar README com os passos da demo.
 
 ## Aprovação
