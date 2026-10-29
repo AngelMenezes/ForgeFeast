@@ -3,7 +3,7 @@
 Data: 2026-10-27
 
 ## Status
-Proposto (2026-10-27)
+Proposto (2026-10-27; revisado em 2026-10-28: pendência da data do prato encaminhada ao ADR-018)
 
 ## Contexto
 - F02 RF-09 pede a tabela `OrderItem` com FK para `Dish`, em SQL Server via Dapper e DbUp ([ADR-004](ADR-004-usar-dapper-sem-ef-core.md), [ADR-005](ADR-005-versionar-schema-com-dbup.md)). Um item precisa de um cabeçalho com nome e data.
@@ -48,4 +48,4 @@ erDiagram
 ## Consequências
 - Positivas: corrida resolvida pelo banco; unicidade independente do collation do servidor; PUT simples (apaga e regrava itens); a F03 lê `Order` + `OrderItem` por data com índice.
 - Negativas: o nome `[Order]` exige colchetes em todo SQL (esquecer gera erro de sintaxe, não bug silencioso). Comparação de nomes vale em dois lugares (trim na API, collation no banco). Sem soft delete nem histórico de alterações.
-- A acompanhar: se a pessoa puder cancelar o pedido (P-03), o `ON DELETE CASCADE` já cobre os itens. Mudar a data de um prato que já tem pedidos (`PUT /api/dishes/{id}`) deixa o item apontando para um prato de outra data; ver a pendência P-09 no handoff.
+- A acompanhar: se a pessoa puder cancelar o pedido (P-03), o `ON DELETE CASCADE` já cobre os itens. A mudança de data de um prato que já tem pedidos (`PUT /api/dishes/{id}`) fica bloqueada com 409 pelo [ADR-018](ADR-018-bloquear-mudanca-de-data-de-prato-com-pedidos.md). Sem isso, o item apontaria para um prato de outra data.

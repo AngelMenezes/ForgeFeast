@@ -3,7 +3,7 @@
 Data: 2026-10-27
 
 ## Status
-Proposto (2026-10-27)
+Proposto (2026-10-27; revisado em 2026-10-28: comportamento do GET em fim de semana explicitado)
 
 ## Contexto
 - F02 ([spec](../../features/002-carrinho-e-pedido-individual/spec.md), RF-03 a RF-08, RF-11 a RF-14) pede criar, consultar e alterar o pedido de uma pessoa num dia útil. Não há login: a única identificação é o nome digitado (RF-02).
@@ -25,7 +25,7 @@ Usaremos a URL `/api/orders?name=<nome>&date=<yyyy-MM-dd>` como endereço do ped
 
 - `items[]` = `{ dishId, quantity }`. A resposta `Order` traz `name` (como gravado, após trim), `date`, `items[] { dishId, dishName, quantity }` em ordem de `dishId`, `createdAt` e `updatedAt` (UTC).
 - PUT não cria pedido nem muda o nome gravado; a busca usa o nome normalizado.
-- **Ordem de avaliação** (POST e PUT): 1) formato → 400; 2) pratos da data → 400; 3) data passada ou dia encerrado → 422; 4) existência → 404 (PUT) ou duplicidade → 409 (POST). GET valida só o formato (inclusive fim de semana) e responde para qualquer data.
+- **Ordem de avaliação** (POST e PUT): 1) formato → 400; 2) pratos da data → 400; 3) data passada ou dia encerrado → 422; 4) existência → 404 (PUT) ou duplicidade → 409 (POST). GET valida só o formato e responde para qualquer data (RF-13). Sábado e domingo **não** dão 400 no GET: respondem 404, porque o banco não aceita pedido nesses dias. `GET /api/orders/window` recusa fim de semana com 400 em `date`.
 - **Chaves de `errors`**: `name`, `date`, `items`. Todo erro de item vai em `items`, e a mensagem identifica o prato. Mensagens fixas (o E2E pode verificá-las):
 
 | Chave | Situação | Mensagem |

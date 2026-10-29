@@ -170,6 +170,8 @@ paths:
       description: |
         Substituição completa: `description` ausente ou nula grava nulo.
         O corpo é validado antes da busca do prato: corpo inválido responde 400 mesmo para id inexistente.
+        Ordem de avaliação (ADR-018): formato (400) → prato inexistente (404) → mudança de data de
+        prato presente em algum pedido (409) → alteração. Nome e descrição podem mudar mesmo com pedidos.
       requestBody:
         required: true
         content:
@@ -196,6 +198,18 @@ paths:
           $ref: '#/components/responses/DishValidationError'
         '404':
           $ref: '#/components/responses/DishNotFound'
+        '409':
+          description: A data do prato não pode mudar porque ele está em ao menos um pedido.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: https://tools.ietf.org/html/rfc9110#section-15.5.10
+                title: Prato com pedidos.
+                status: 409
+                detail: Este prato tem pedidos e não pode mudar de data.
+                traceId: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
         '500':
           $ref: '#/components/responses/InternalServerError'
     delete:
@@ -296,11 +310,12 @@ paths:
       operationId: getOrder
       summary: Consulta o pedido de uma pessoa numa data.
       description: |
-        Funciona para qualquer dia útil, inclusive datas passadas e dias encerrados.
+        Funciona para qualquer data, inclusive datas passadas e dias encerrados (RF-13).
+        Sábado ou domingo não é erro de formato: responde 404, pois não existe pedido nesses dias (ADR-014).
         A busca ignora espaços nas pontas e maiúsculas/minúsculas do nome.
       parameters:
         - $ref: '#/components/parameters/OrderName'
-        - $ref: '#/components/parameters/OrderDate'
+        - $ref: '#/components/parameters/OrderLookupDate'
       responses:
         '200':
           description: Pedido encontrado.
@@ -642,7 +657,9 @@ components:
           example: '12:00'
         timeZone:
           type: string
-          description: Id IANA do fuso usado na regra.
+          description: |
+            Valor configurado em `Ordering:TimeZone` (ADR-015), como está. O padrão é o id IANA
+            `America/Sao_Paulo`; um id Windows configurado é devolvido sem conversão.
           example: America/Sao_Paulo
         closesAt:
           type: string
@@ -697,6 +714,15 @@ components:
       in: query
       required: true
       description: Dia útil (`yyyy-MM-dd`). Sábado ou domingo responde 400 em `date`.
+      schema:
+        type: string
+        format: date
+      example: '2026-10-28'
+    OrderLookupDate:
+      name: date
+      in: query
+      required: true
+      description: Data do pedido (`yyyy-MM-dd`), qualquer dia. Fora do formato responde 400 em `date`.
       schema:
         type: string
         format: date

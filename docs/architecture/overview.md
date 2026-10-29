@@ -147,10 +147,10 @@ No frontend, a F02 segue o padrão já usado pela F01: o serviço HTTP de pedido
 | `GET /api/menu?weekStart=yyyy-MM-dd` | F01 | 200 `WeekMenu` (sempre 5 dias, segunda a sexta) | 400 `weekStart` |
 | `POST /api/dishes` | F01 | 201 `Dish` + `Location` | 400 `date`/`name`/`description` |
 | `GET /api/dishes/{id}` | F01 | 200 `Dish` | 404 |
-| `PUT /api/dishes/{id}` | F01 | 200 `Dish` | 400 (validado antes do 404), 404 |
+| `PUT /api/dishes/{id}` | F01/F02 | 200 `Dish` | 400 (validado antes do 404), 404, 409 mudança de data de prato com pedidos (ADR-018) |
 | `DELETE /api/dishes/{id}` | F01/F02 | 204 | 404, 409 prato com pedidos (ADR-017) |
 | `POST /api/orders` | F02 | 201 `Order` + `Location` | 400 `name`/`date`/`items`, 422 encerrado, 409 já existe |
-| `GET /api/orders?name=&date=` | F02 | 200 `Order` | 400 `name`/`date`, 404 |
+| `GET /api/orders?name=&date=` | F02 | 200 `Order` (qualquer data) | 400 `name`/`date` (só formato), 404 (inclusive fim de semana) |
 | `PUT /api/orders?name=&date=` | F02 | 200 `Order` (substitui os itens) | 400 `name`/`date`/`items`, 422 encerrado, 404 |
 | `GET /api/orders/window?date=` | F02 | 200 `OrderWindow` (`cutoffTime`, `closesAt`, `isOpen`) | 400 `date` |
 
@@ -202,7 +202,7 @@ Precedência na API (maior vence): variáveis de ambiente do processo > `.env` d
 | `ASPNETCORE_ENVIRONMENT` | API | `Development` | ambiente |
 | `ASPNETCORE_URLS` | API | `http://localhost:5080` | endereço da API |
 | `Ordering__CutoffTime` | API | `12:00` | horário de corte dos pedidos (`HH:mm`); padrão em `appsettings.json` (ADR-015) |
-| `Ordering__TimeZone` | API | `America/Sao_Paulo` | id IANA do fuso da regra de corte; padrão em `appsettings.json` (ADR-015) |
+| `Ordering__TimeZone` | API | `America/Sao_Paulo` | fuso da regra de corte; id IANA (com equivalência para Windows só em `America/Sao_Paulo` e `UTC`) ou id do sistema; padrão em `appsettings.json` (ADR-015) |
 
 O frontend não lê `.env`: chama sempre o caminho relativo `/api`, resolvido pelo `proxy.conf.json` em desenvolvimento.
 
@@ -228,7 +228,8 @@ Logs via `ILogger` padrão do ASP.NET Core no console, sem provider externo. Hea
 - Integração depende de Docker ativo (Testcontainers e banco local).
 - Senha do `sa` duplicada entre `MSSQL_SA_PASSWORD` e a connection string no `.env`; aceito pela simplicidade (ver ADR-009).
 - Regra de corte depende do fuso configurado; em imagem Linux sem `tzdata` a API não sobe (ADR-015).
-- Alterar a data de um prato que já tem pedidos (`PUT /api/dishes/{id}`) deixa o item apontando para um prato de outro dia; decisão pendente com o PO (ADR-016).
+- Mudar a data de um prato com pedidos é bloqueado com 409 (ADR-018), sem trava contra a corrida entre a checagem e o `UPDATE`. Esse risco foi aceito para a demo.
+- Fuso do corte: o painel pede "fuso do servidor" e a spec usa `America/Sao_Paulo` (P-10, pendente de confirmação humana). A troca é só de configuração (ADR-015).
 
 ## Decisões
 
@@ -251,5 +252,6 @@ Logs via `ILogger` padrão do ASP.NET Core no console, sem provider externo. Hea
 | [ADR-015](adr/ADR-015-usar-timeprovider-e-fuso-configuravel-no-corte-de-pedidos.md) | Usar TimeProvider e fuso configurável no corte de pedidos | Proposto | 2026-10-27 |
 | [ADR-016](adr/ADR-016-modelar-pedidos-em-order-e-orderitem-com-unicidade-no-banco.md) | Modelar pedidos em Order e OrderItem com unicidade no banco | Proposto | 2026-10-27 |
 | [ADR-017](adr/ADR-017-integrar-menu-e-orders-por-servico-e-porta-de-uso-do-prato.md) | Integrar Menu e Orders por serviço e por porta de uso do prato | Proposto | 2026-10-27 |
+| [ADR-018](adr/ADR-018-bloquear-mudanca-de-data-de-prato-com-pedidos.md) | Bloquear a mudança de data de prato com pedidos | Proposto | 2026-10-28 |
 
 Todas as ADRs estão `Proposto` e precisam de revisão e aprovação humana (mudança para `Aceito`, com data) antes de qualquer feature P1 começar.
